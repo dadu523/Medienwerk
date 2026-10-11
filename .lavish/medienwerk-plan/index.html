@@ -1,0 +1,473 @@
+<!doctype html><html lang="de" data-theme="dark"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="color-scheme" content="dark light"><title>Medienwerk · Stabilisierungsplan</title><style>
+@font-face{font-family:Outfit;src:url("outfit.woff2") format("woff2");font-weight:100 900;font-display:swap}
+:root{--bg-main:#060608;--bg-glass:rgba(20,20,25,.76);--border-glass:rgba(255,255,255,.10);--accent:#66fcf1;--text:#eeeef2;--muted:#a1a1ad;--panel:#111116;--soft:rgba(255,255,255,.045);--warning:#ffcb83;--grid:rgba(255,255,255,.019);color-scheme:dark}
+:root[data-theme=light]{--bg-main:#f5f7f8;--bg-glass:rgba(255,255,255,.85);--border-glass:rgba(10,30,40,.14);--accent:#006c65;--text:#182027;--muted:#54616a;--panel:#fff;--soft:rgba(20,40,60,.045);--warning:#875000;--grid:rgba(15,40,60,.035);color-scheme:light}
+*{box-sizing:border-box;min-width:0}html{scroll-behavior:smooth;scroll-padding-top:92px}body{margin:0;background-color:var(--bg-main);color:var(--text);font-family:Outfit,system-ui,sans-serif;line-height:1.65;background-image:linear-gradient(var(--grid) 1px,transparent 1px),linear-gradient(90deg,var(--grid) 1px,transparent 1px);background-size:40px 40px;font-size:16px}a{color:var(--accent);text-underline-offset:4px;overflow-wrap:anywhere}button{font:inherit;color:var(--text);cursor:pointer;background:var(--soft);border:1px solid var(--border-glass);padding:9px 15px;border-radius:10px}button:hover{border-color:var(--accent)}a:focus-visible,button:focus-visible,summary:focus-visible{outline:2px solid var(--accent);outline-offset:4px}img{max-width:100%;display:block;border-radius:10px}p{margin:0 0 18px}h1,h2,h3{line-height:1.17;letter-spacing:-.025em}h1{font-size:clamp(39px,5vw,76px);font-weight:600;max-width:850px;margin:18px 0 24px}h2{font-size:clamp(27px,3vw,38px);font-weight:550;margin:0}h3{font-size:24px;font-weight:550;margin:30px 0 16px}ul{padding-left:22px;margin:0 0 22px}li{margin:10px 0}strong{font-weight:600}code{font-family:ui-monospace,SFMono-Regular,monospace;font-size:.82em;color:var(--accent);background:var(--soft);padding:2px 5px;border-radius:4px;overflow-wrap:anywhere;word-break:break-word}figure{margin:0}figcaption{font-size:13px;color:var(--muted);line-height:1.5;margin-top:14px}
+.topbar{position:sticky;top:0;z-index:10;border-bottom:1px solid var(--border-glass);background:var(--bg-glass);backdrop-filter:blur(20px);display:flex;justify-content:space-between;align-items:center;gap:15px;padding:14px max(24px,calc((100vw - 1400px)/2))}.identity{display:flex;align-items:center;gap:10px;font-size:17px;font-weight:600;text-decoration:none;color:var(--text)}.logo{width:30px;height:30px;border:1px solid var(--accent);border-radius:9px;display:grid;place-items:center;color:var(--accent)}.top-actions{display:flex;align-items:center;gap:14px;font-size:13px}.local-tag{border:1px solid var(--border-glass);border-radius:30px;padding:5px 10px;color:var(--muted)}.frame{max-width:1400px;margin:auto;padding:0 32px}.hero{padding:74px 0 56px}.eyebrow{text-transform:uppercase;font-size:12px;letter-spacing:.16em;color:var(--accent);font-weight:600}.lede{font-size:23px;color:var(--muted);line-height:1.5;max-width:870px}.hero-meta{display:flex;flex-wrap:wrap;gap:8px 20px;color:var(--muted);font-size:13px;margin-top:28px}.metrics{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:14px;margin:38px 0 0}.metric{border:1px solid var(--border-glass);background:var(--bg-glass);border-radius:16px;padding:22px}.metric b{display:block;color:var(--accent);font-size:38px;line-height:1.2;font-weight:500}.metric span{font-size:14px;color:var(--muted)}.takeaways{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px;margin-bottom:56px}.takeaway{padding:25px;border:1px solid var(--border-glass);border-radius:16px;background:var(--bg-glass)}.takeaway h3{font-size:21px;margin:12px 0}.takeaway p{font-size:15px;color:var(--muted);margin:0}.takeaway small{color:var(--accent);font-weight:600;text-transform:uppercase;letter-spacing:.06em}.layout{display:grid;grid-template-columns:252px minmax(0,1fr);gap:48px;align-items:start}.contents{position:sticky;top:98px;max-height:calc(100vh - 115px);overflow-y:auto;padding-right:8px;font-size:13px}.contents summary{font-size:12px;text-transform:uppercase;letter-spacing:.1em;color:var(--muted);margin-bottom:16px;cursor:pointer}.contents nav{display:flex;flex-direction:column;gap:3px}.contents a{padding:7px 10px;color:var(--muted);text-decoration:none;border-left:2px solid transparent;line-height:1.45}.contents a span{display:inline-block;width:25px;color:var(--accent);font-size:11px}.contents a:hover,.contents a.active{background:var(--soft);color:var(--text);border-color:var(--accent)}.report-section{padding-bottom:58px;margin-bottom:45px;border-bottom:1px solid var(--border-glass);overflow-wrap:anywhere}.section-heading{display:flex;gap:15px;align-items:baseline;margin-bottom:29px}.section-number{color:var(--accent);font-size:15px;font-weight:500}.report-section p{max-width:84ch}.sources{font-size:12px;color:var(--muted);line-height:1.9;margin-top:24px}.sources code{color:var(--muted);background:none;padding:0}.table-wrap{width:100%;margin:25px 0 30px;border:1px solid var(--border-glass);border-radius:14px;overflow:hidden}table{width:100%;border-collapse:collapse;table-layout:fixed;font-size:14px;text-align:left;line-height:1.55}th{background:var(--soft);font-size:11px;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);font-weight:600}td,th{padding:15px 16px;vertical-align:top;overflow-wrap:anywhere}td{border-top:1px solid var(--border-glass)}td:first-child{font-weight:550}tr:hover td{background:var(--soft)}table:has(th:nth-child(4)) th:first-child{width:55px}table:has(th:nth-child(4)) th:nth-child(2){width:23%}#section-16 th:first-child{width:85px}#section-16 th:nth-child(2){width:55%}
+.illustration{display:grid;grid-template-columns:minmax(0, .95fr) minmax(0,1fr);gap:28px;align-items:center;background:var(--bg-glass);border:1px solid var(--border-glass);border-radius:18px;padding:28px;margin:0 0 35px}.diagram{width:100%;height:auto;max-width:380px;display:block;margin:auto;overflow:visible}.node{fill:var(--panel);stroke:var(--border-glass);stroke-width:1.5}.node.accent{stroke:var(--accent);fill:var(--soft)}.node.warning{stroke:var(--warning);stroke-dasharray:5 4}.node-title{fill:var(--text);font:500 19px Outfit,system-ui,sans-serif}.node-sub{fill:var(--muted);font:14px Outfit,system-ui,sans-serif}.edge{fill:none;stroke:var(--accent);stroke-width:1.6}.edge-label{fill:var(--muted);font:12px Outfit,system-ui,sans-serif}.figure-text h3{margin:14px 0 18px;font-size:29px}.figure-text p,.figure-text li{font-size:15px;color:var(--muted)}.screenshots{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:20px;margin:26px 0 35px}.screenshots figure{background:var(--bg-glass);border:1px solid var(--border-glass);border-radius:15px;padding:12px}.evidence{border:1px solid var(--border-glass);background:var(--bg-glass);border-radius:13px;margin-top:16px;overflow:hidden}.evidence summary{padding:16px 20px;cursor:pointer;font-size:14px;color:var(--accent)}.source-note{padding:0 20px;font-size:12px;color:var(--muted)}.code-surface{width:100%;font-size:12px;overflow:hidden}.code-surface diffs-container{max-width:100%}.footer{margin:0 0 50px;padding:24px;border:1px solid var(--border-glass);border-radius:16px;color:var(--muted);font-size:14px}.footer a{margin-right:15px}.backtop{font-size:13px;display:inline-block;margin-top:10px}
+@media(min-width:1200px){.frame{padding:0 48px}.layout{gap:60px}}
+@media(max-width:1000px){.layout{grid-template-columns:minmax(0,1fr)}.contents{position:static;max-height:none;border:1px solid var(--border-glass);border-radius:15px;padding:18px;margin-bottom:15px}.contents nav{display:grid;grid-template-columns:repeat(2,minmax(0,1fr))}.hero{padding-top:50px}.takeaways{gap:10px}.takeaway{padding:18px}}
+@media(max-width:650px){.frame{padding:0 18px}.topbar{padding:12px 18px}.top-actions{gap:8px}.local-tag{display:none}.top-actions a{display:none}.hero{padding:38px 0}.lede{font-size:19px}.metrics{grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin-top:25px}.metric{padding:16px}.metric b{font-size:30px}.takeaways{grid-template-columns:minmax(0,1fr);margin-bottom:35px}.contents nav{grid-template-columns:minmax(0,1fr)}.illustration{grid-template-columns:minmax(0,1fr);padding:18px;gap:15px}.figure-text h3{font-size:25px}.screenshots{grid-template-columns:minmax(0,1fr)}.section-heading{gap:10px}.report-section{padding-bottom:35px;margin-bottom:35px}table{font-size:12px}td,th{padding:9px 8px}th{font-size:10px}table:has(th:nth-child(4)) th:first-child{width:36px}table:has(th:nth-child(4)) th:nth-child(2){width:20%}#section-16 th:first-child{width:60px}#section-16 th:nth-child(2){width:45%}h3{font-size:22px}.hero-meta{font-size:12px}.table-wrap{border-radius:10px}}
+@media print{.contents,.topbar,button,.evidence{display:none}.layout{display:block}.frame{padding:0}.hero{padding:0 0 20px}.report-section{break-inside:avoid}body{background:white;color:black;font-size:11pt}.metric b{color:#006c65}}
+
+.plan-note{padding:18px 22px;border-left:3px solid var(--accent);background:var(--soft);border-radius:0 12px 12px 0;font-size:15px;margin:26px 0;color:var(--muted)}
+.plan-note strong{color:var(--text)}.target-card{padding:25px;border:1px solid var(--border-glass);border-radius:16px;background:var(--bg-glass);margin-bottom:32px}.target-card h3{margin-top:0}.target-card p{color:var(--muted)}.phase-status{font-size:11px;text-transform:uppercase;letter-spacing:.12em;color:var(--muted);margin-left:auto;border:1px solid var(--border-glass);border-radius:20px;padding:5px 10px;white-space:nowrap}
+.report-section .section-heading{align-items:center}.section-number{flex:0 0 auto;white-space:nowrap}.phase-caption{color:var(--muted);font-size:13px;margin-bottom:30px}.goal-check{border:1px solid var(--accent);border-radius:14px;padding:22px;background:var(--soft)}.goal-check p:last-child{margin-bottom:0}.current-shot{max-width:640px;margin:25px 0}.current-shot img{width:100%;height:auto;aspect-ratio:1440/1100;border:1px solid var(--border-glass)}.codefree-diagram text{font-family:Outfit,system-ui,sans-serif}.hero-actions{display:flex;flex-wrap:wrap;gap:12px;margin-top:24px}.hero-actions a{padding:9px 14px;border:1px solid var(--border-glass);border-radius:10px;text-decoration:none;font-size:14px}.hero-actions a:first-child{border-color:var(--accent)}
+@media(max-width:650px){.phase-status{display:none}.report-section .section-heading{align-items:baseline}.target-card{padding:18px}.plan-note{padding:16px;font-size:14px}#section-11 th:first-child{width:30%}}
+</style></head><body><header class="topbar"><a class="identity" href="#top"><span class="logo" aria-hidden="true">M</span>Medienwerk <span style="color:var(--muted);font-weight:400">/ Plan</span></a><div class="top-actions"><span class="local-tag">P0–P6 · lokal geprüft</span><a href="STABILIZATION_PLAN.md" download>Plan speichern ↓</a><button id="theme-toggle" type="button" aria-label="Lesemodus wechseln">Hell</button></div></header><div class="frame"><header class="hero" id="top"><div class="eyebrow">Umgesetzte Entwicklungsrunde · 11. Oktober 2026</div><h1>Eine verlässliche Basis<br>für Medienwerk.</h1><p class="lede">Vorhandene Abläufe schrittweise verbinden: konsistente Einstellungen, dauerhafte Projekte und nachvollziehbare Aufträge. Weitere Anpassungen und neue Funktionen folgen danach.</p><div class="hero-meta"><span>Lokaler Betrieb für eine Person</span><span>Bestehende Technik erweitern</span><span>Kleine Änderungspakete für Original-Updates</span></div><div class="hero-actions"><a href="STABILIZATION_RESULT.md">Abschlussbericht: 96 Tests und Browserabnahme</a><a href="#section-3">Die sieben Etappen</a><a href="#section-11">Alle Analysebefunde zuordnen</a><a href="STABILIZATION_PLAN.md" download>Ausführlichen Plan speichern</a></div><div class="metrics"><div class="metric"><b>7</b><span>Etappen mit Abschlusskriterien</span></div><div class="metric"><b>3</b><span>gemeinsame Grundlagen</span></div><div class="metric"><b>15</b><span>zugeordnete Analysebefunde</span></div><div class="metric"><b>1</b><span>erster Hauptablauf: Quick Creator</span></div></div></header><aside class="plan-note"><strong>Lokale Stabilisierung abgeschlossen.</strong> Drei Luna/high-Worker haben die Umsetzung übernommen; der Hauptagent hat Änderungen, 96 Backend-Tests in zwei Umgebungen, den Next-Build, echte FFmpeg-Konvertierungen und Neustartfälle geprüft. Reale KI-Anbieter und Veröffentlichungen bleiben separat zu prüfen. <a href="STABILIZATION_RESULT.md">Nachweise und Grenzen</a> · <a href="MODULE_DEVELOPMENT.md">Verträge für neue Module</a></aside><div class="takeaways"><article class="takeaway"><small>Zuerst</small><h3>Stand sichern, Aufrufe reparieren</h3><p>Vor Migrationen sichern wir Daten und Programmstand. Dann werden Schlüssel, Optionen und konkrete fehlerhafte Methodenaufrufe vereinheitlicht.</p></article><article class="takeaway"><small>Danach</small><h3>Projekte und Jobs verbinden</h3><p>SQLite speichert den gemeinsamen Bestand. Die vorhandenen Pipelines registrieren ihre Ergebnisse, und die Oberfläche zeigt echte Zustände.</p></article><article class="takeaway"><small>Nächste Runde</small><h3>Deine Anpassungen und Funktionen</h3><p>Design, vollständiger Editor, Brand-Oberfläche, Agentenstudio und zusätzliche Publisher bekommen anschließend einen eigenen Plan.</p></article></div><div class="layout"><aside class="contents"><details open><summary>Plan · 14 Kapitel</summary><nav aria-label="Inhaltsverzeichnis"><a href="#section-1"><span>01</span>Ziel und Rahmen</a><a href="#section-2"><span>02</span>Ausgangslage und gewünschtes Verhalten</a><a href="#section-3"><span>03</span>Reihenfolge und Abhängigkeiten</a><a href="#section-4"><span>04</span>P0 — Ausgangsstand sichern</a><a href="#section-5"><span>05</span>P1 — Einstellungen und direkte Fehler korrigieren</a><a href="#section-6"><span>06</span>P2 — Gemeinsame Projekte und Medien</a><a href="#section-7"><span>07</span>P3 — Einheitliche und dauerhafte Aufträge</a><a href="#section-8"><span>08</span>P4 — Bestehende Produktionswege verbinden</a><a href="#section-9"><span>09</span>P5 — Echte Daten in der vorhandenen Oberfläche</a><a href="#section-10"><span>10</span>P6 — Geplante Abnahme und Übergabe</a><a href="#section-11"><span>11</span>Zuordnung der 15 Analysebefunde</a><a href="#section-12"><span>12</span>Migration, Rückweg und Original-Updates</a><a href="#section-13"><span>13</span>Fertig-Kriterium für diese Entwicklungsrunde</a><a href="#section-14"><span>14</span>Umsetzung mit Subagents</a></nav></details></aside><main><section class="report-section" id="section-1"><div class="section-heading"><span class="section-number">01</span><h2>Ziel und Rahmen</h2></div><p>Medienwerk soll lokal eine verlässliche Grundlage bekommen, auf der wir anschließend deine weiteren Anpassungen und Funktionen entwickeln können. Ein Auftrag soll nachvollziehbar starten, korrekte Einstellungen verwenden, einen verständlichen Status anzeigen und seine Ergebnisse dauerhaft einem Projekt zuordnen.</p>
+<p>Die vorhandene Struktur bleibt der Ausgangspunkt: Next.js und React für die Oberfläche, FastAPI für die API, Python für die Verarbeitung, FFmpeg und Whisper für Medien sowie SQLite für lokale Metadaten. Wir erweitern diese Struktur schrittweise. Das verringert Eingriffe in die großen Dateien des Originalprojekts und erleichtert spätere Upstream-Merges.</p>
+<p><strong>Empfohlener erster Hauptablauf:</strong> Quick Creator — Thema eingeben → Auftrag verfolgen → Video erzeugen → Ergebnis im Projekt und in der Historie finden → abspielen und herunterladen. Die Kampagnen verwenden dieselbe Pipeline und profitieren anschließend von dieser Verbindung. Die vorhandene lokale Formatkonvertierung dient als einfacher Kontrollfall für Dateispeicherung und Ausgabe ohne KI-Anbieter.</p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>Bestandteil</th>
+<th>Umfang dieses Plans</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Laufzeit</td>
+<td>Lokaler Betrieb für eine Person auf dem vorhandenen Rechner.</td>
+</tr>
+<tr>
+<td>Produktion</td>
+<td>Bestehende Verarbeitung reparieren und schrittweise verbinden.</td>
+</tr>
+<tr>
+<td>Daten</td>
+<td>SQLite für Projekte, Medien und Jobs; Videodateien bleiben im Dateisystem.</td>
+</tr>
+<tr>
+<td>Oberfläche</td>
+<td>Echte Statusmeldungen und Ergebnisse; unvollständige Bereiche eindeutig kennzeichnen.</td>
+</tr>
+<tr>
+<td>Anbieter</td>
+<td>Vorhandene Clients durch gemeinsame Konfiguration und kleine Adapter verbinden.</td>
+</tr>
+<tr>
+<td>Original-Updates</td>
+<td>Kleine Änderungspakete, dokumentierte Eingriffspunkte und separate Merge-Branches.</td>
+</tr>
+</tbody>
+</table></div>
+<p>Name, Design, vollständige deutsche Oberfläche, neue KI-Anbieter, neue Funktionen, vollwertiger Timeline-Editor, Brand-Upload-Oberfläche, Agentenstudio, neue Social-Publisher und Onlinebetrieb kommen in die nächste Planungsrunde. Die Rückgabe echter Daten an vorhandene Seiten gehört zur Stabilisierung; der Ausbau ihrer Bedienfunktionen gehört zur späteren Anpassung.</p></section><section class="report-section" id="section-2"><div class="section-heading"><span class="section-number">02</span><h2>Ausgangslage und gewünschtes Verhalten</h2></div><div class="illustration" id="zielstruktur"><figure><svg class="diagram codefree-diagram" viewBox="0 0 380 650" role="img" aria-labelledby="target-title"><title id="target-title">Umgesetzte lokale Verbindung: Eingabe, feste Optionen, Projekt und Job, Medienbestand und vorhandene Seiten</title><defs><marker id="target-arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M0 0 L10 5 L0 10 Z" fill="var(--accent)"/></marker></defs><g id="target-1"><title>Deine Eingabe: Vorhandenes Formular im Browser</title><rect class="node normal" x="25" y="10" width="330" height="80" rx="14"/><text class="node-title" x="190" y="42" text-anchor="middle">Deine Eingabe</text><text class="node-sub" x="190" y="67" text-anchor="middle">Vorhandenes Formular im Browser</text></g><g id="target-edge-1"><title>Nächster Schritt im lokalen Ablauf</title><path class="edge" d="M190 90 L190 131" marker-end="url(#target-arrow)"/></g><g id="target-2"><title>Feste Einstellungen: Schema + geprüfte Anbieteroptionen</title><rect class="node normal" x="25" y="138" width="330" height="80" rx="14"/><text class="node-title" x="190" y="170" text-anchor="middle">Feste Einstellungen</text><text class="node-sub" x="190" y="195" text-anchor="middle">Schema + geprüfte Anbieteroptionen</text></g><g id="target-edge-2"><title>Nächster Schritt im lokalen Ablauf</title><path class="edge" d="M190 218 L190 259" marker-end="url(#target-arrow)"/></g><g id="target-3"><title>Projekt + Auftrag: Eindeutige IDs · Zustände in SQLite</title><rect class="node accent" x="25" y="266" width="330" height="80" rx="14"/><text class="node-title" x="190" y="298" text-anchor="middle">Projekt + Auftrag</text><text class="node-sub" x="190" y="323" text-anchor="middle">Eindeutige IDs · Zustände in SQLite</text></g><g id="target-edge-3"><title>Nächster Schritt im lokalen Ablauf</title><path class="edge" d="M190 346 L190 387" marker-end="url(#target-arrow)"/></g><g id="target-4"><title>Medien erzeugen: Vorhandene Pipeline · registrierte Datei</title><rect class="node normal" x="25" y="394" width="330" height="80" rx="14"/><text class="node-title" x="190" y="426" text-anchor="middle">Medien erzeugen</text><text class="node-sub" x="190" y="451" text-anchor="middle">Vorhandene Pipeline · registrierte Datei</text></g><g id="target-edge-4"><title>Nächster Schritt im lokalen Ablauf</title><path class="edge" d="M190 474 L190 515" marker-end="url(#target-arrow)"/></g><g id="target-5"><title>Gemeinsamer Bestand: History · Dashboard · Publish-Bibliothek</title><rect class="node accent" x="25" y="522" width="330" height="80" rx="14"/><text class="node-title" x="190" y="554" text-anchor="middle">Gemeinsamer Bestand</text><text class="node-sub" x="190" y="579" text-anchor="middle">History · Dashboard · Publish-Bibliothek</text></g></svg><figcaption>Lokal umgesetzte Struktur · externe Anbieterwege separat prüfen</figcaption></figure><div class="figure-text"><div class="eyebrow">Das gemeinsame Fundament</div><h3>Ein Ergebnis bleibt seinem Projekt zugeordnet.</h3><p>Ein Auftrag startet mit geprüften Optionen. Sein Zustand und seine Ausgaben landen im gemeinsamen Bestand. Die vorhandenen Seiten können dadurch dieselben Informationen verwenden.</p><ul><li><strong>Projekt:</strong> Was wird produziert, und welche Medien gehören dazu?</li><li><strong>Job:</strong> Was läuft gerade, was ist fertig, was wurde unterbrochen?</li><li><strong>Einstellungen:</strong> Welche Optionen gelten für genau diesen Versuch?</li></ul><p>Der Threadpool und die Videodateien bleiben lokal. SQLite speichert deren Metadaten und die Zustände.</p></div></div><p>Die Analyse zeigt drei zentrale Verbindungen, die fehlen: gemeinsame Einstellungen, ein gemeinsamer Projektbestand und ein einheitlicher Auftragsvertrag. Darauf bauen die einzelnen Produktionswege auf.</p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>Ausgangslage aus der Analyse</th>
+<th>Gewünschtes Verhalten nach Umsetzung</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Ergebnisse liegen in unterschiedlichen Ordnern; History und Publish suchen eigene Dateinamen.</td>
+<td>Projekte registrieren ihre Ausgaben; vorhandene Seiten lesen denselben Bestand.</td>
+</tr>
+<tr>
+<td>Gleichnamige Themen und URLs verwenden vorhandene Dateien trotz geänderter Optionen.</td>
+<td>Neue Projekte besitzen eindeutige IDs; Wiederverwendung berücksichtigt Quelle und wirksame Einstellungen.</td>
+</tr>
+<tr>
+<td>Schlüssel, Sprache, Formate und Schalter werden unterschiedlich ausgewertet.</td>
+<td>Ein Konfigurationsschema liefert pro Auftrag ein festes, validiertes Einstellungsobjekt.</td>
+</tr>
+<tr>
+<td>Jobs und Protokolle liegen nur im RAM.</td>
+<td>Zustände bleiben in SQLite erhalten; ein Neustart kennzeichnet unterbrochene Verarbeitung.</td>
+</tr>
+<tr>
+<td>Fortschritt und WebSocket-Nachrichten unterscheiden sich zwischen Seiten.</td>
+<td>Alle Seiten verwenden dieselbe Statusstruktur und einen gemeinsamen Client.</td>
+</tr>
+<tr>
+<td>Einige Funktionen sind Platzhalter oder rufen fehlende Methoden auf.</td>
+<td>Bestehende Aufrufe sind repariert; unvollständige Funktionen geben keine falschen Erfolgsanzeigen.</td>
+</tr>
+</tbody>
+</table></div></section><section class="report-section" id="section-3"><div class="section-heading"><span class="section-number">03</span><h2>Reihenfolge und Abhängigkeiten</h2></div><div class="table-wrap"><table>
+<thead>
+<tr>
+<th>Etappe</th>
+<th>Aufgabe</th>
+<th>Voraussetzung</th>
+<th>Ergebnis</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>P0</td>
+<td>Ausgangsstand und Wiederherstellung sichern</td>
+<td>Aktueller lokaler Arbeitsstand</td>
+<td>Gesicherte Ausgangsbasis und dokumentierter Start.</td>
+</tr>
+<tr>
+<td>P1</td>
+<td>Einstellungen und direkte Aufruffehler korrigieren</td>
+<td>P0</td>
+<td>Eindeutige Optionen und brauchbare Anbieteradapter.</td>
+</tr>
+<tr>
+<td>P2</td>
+<td>Projekte, Dateien und bestehende Ergebnisse erfassen</td>
+<td>P1</td>
+<td>Gemeinsamer Bestand in SQLite.</td>
+</tr>
+<tr>
+<td>P3</td>
+<td>Jobs, Fortschritt und Neustarts vereinheitlichen</td>
+<td>P2</td>
+<td>Dauerhafte, nachvollziehbare Aufträge.</td>
+</tr>
+<tr>
+<td>P4</td>
+<td>Bestehende Produktionswege anbinden</td>
+<td>P1–P3</td>
+<td>Quick Creator als erster vollständiger Ablauf; weitere Module folgen.</td>
+</tr>
+<tr>
+<td>P5</td>
+<td>Vorhandene Oberfläche an echte Daten anbinden</td>
+<td>P2–P4</td>
+<td>Verlässliche History, Dashboard, Publish-Bibliothek und Statusanzeigen.</td>
+</tr>
+<tr>
+<td>P6</td>
+<td>Gesamtabnahme und Entwicklungsvoraussetzungen festhalten</td>
+<td>P0–P5</td>
+<td>Dokumentierte Grundlage für spätere Anpassungen.</td>
+</tr>
+</tbody>
+</table></div>
+<p>Jede Etappe wird in kleine Änderungspakete geteilt. Der nächste Schritt baut auf dem dokumentierten Ergebnis des vorherigen auf. Erste verbindliche Aufwandsschätzungen entstehen nach P0/P1; die noch ungeprüften Anbieterwege und Altdateien machen feste Termine derzeit wenig belastbar.</p></section><section class="report-section" id="section-4"><div class="section-heading"><span class="section-number">04</span><h2>P0 — Ausgangsstand sichern</h2><span class="phase-status">Lokal umgesetzt</span></div><h3>Arbeiten</h3>
+<ul>
+<li>Vorhandene lokale Startkorrekturen und die neue Dokumentation im Git-Diff getrennt erfassen. Eine Basis für weitere Entwicklungsbranches aus dem tatsächlich angepassten Stand festlegen; neue Branches dürfen diese Änderungen nicht durch einen Start vom unveränderten <code>origin/main</code> verlieren.</li>
+<li>Nur bewusst ausgewählte Quell- und Dokumentationsdateien in spätere Commits aufnehmen. API-Schlüssel, Videos, OAuth-Dateien und Browserprofile bleiben außerhalb von Git.</li>
+<li>Vor Datenmigrationen eine lokale Sicherung von <code>config.json</code>, <code>campaigns.json</code>, SQLite und vorhandenen Produktionsordnern anlegen. Bei laufender SQLite-Datenbank die Backup-Schnittstelle verwenden oder das Backend für die Sicherung anhalten.</li>
+<li>Die Umstellung zu einem Zeitpunkt ohne aktive Produktion durchführen. Automatische Kampagnen während der Arbeiten pausieren und ihren bisherigen Aktivierungsstand sichern; ein reparierter Scheduler darf nicht unbeabsichtigt alte Kampagnen starten.</li>
+<li>Ein Sicherungsmanifest mit Pfaden, Zeitpunkt und Datenbankschemaversion dokumentieren. Den Wiederherstellungsweg für Datenbank, Konfiguration und Programmstand festhalten.</li>
+<li>Installierte Python- und Node-Abhängigkeiten sowie FFmpeg-Version erfassen. Für die spätere Umsetzung einen reproduzierbaren Python-Abhängigkeitsstand einschließlich CPU-PyTorch-Quelle erstellen; <code>npm ci</code> und der vorhandene Node-Lock bleiben die Frontend-Basis.</li>
+<li>Ausschlüsse für Kampagnendatei, Sicherungen, Protokolle und die tatsächlich verwendeten Browserprofile ergänzen. Dokumentation und kleine Berichtsartefakte dürfen separat versioniert werden.</li>
+</ul>
+<h3>Abschlusskriterien</h3>
+<p>Der lokale Startweg ist dokumentiert, sensible Laufzeitdateien sind ausgeschlossen, und vor der ersten Migration existiert eine überprüfbare Sicherung. Es ist nachvollziehbar, welcher Programmstand zu welchem Datenbankschema gehört.</p>
+<p><strong>Berührte Bereiche:</strong> <code>README.md</code>, <code>LOCAL_TESTING.md</code>, <code>UPSTREAM.md</code>, <code>.gitignore</code>, <code>requirements.txt</code>, ergänzende Lock-/Installationsdokumentation. Kein automatischer Push oder Upstream-Merge ist Bestandteil dieser Etappe.</p></section><section class="report-section" id="section-5"><div class="section-heading"><span class="section-number">05</span><h2>P1 — Einstellungen und direkte Fehler korrigieren</h2><span class="phase-status">Lokal umgesetzt</span></div><h3>Arbeiten</h3>
+<ul>
+<li>Ein typisiertes Schema für bestehende Optionen erstellen. Darin werden etwa Sprache, Text-/Audio-/Bild-/Videoanbieter, Stimmen, Untertitel und Seitenverhältnis eindeutig beschrieben.</li>
+<li><code>WAVESPEED_API_KEY</code> als gemeinsamen Namen verwenden. Beim Lesen alter Konfigurationen den Alias <code>WAVESPEED_AI_KEY</code> übernehmen, falls der gemeinsame Wert fehlt. Bei unterschiedlichen ausgefüllten Werten beide lokal erhalten und den Konflikt ohne Ausgabe der Schlüsselwerte melden.</li>
+<li><code>FACT_CHECK_ENABLED</code> vereinheitlichen und alte Formularnamen übersetzen. Seitenverhältnisse intern als <code>16:9</code>, <code>9:16</code> oder <code>1:1</code> behandeln; alte Anzeigenamen nur am Eingangsrand übersetzen. Bereits im Tool angebotene 1:1-Konvertierung korrekt verarbeiten.</li>
+<li>Beim Jobstart globale Werte und Auftragsoptionen zusammenführen. Dieses wirksame Einstellungsobjekt gilt anschließend für alle Phasen des Auftrags; Speichern während eines Laufs verändert ihn nicht rückwirkend.</li>
+<li>Bestehende Schalter mit ihrer Verarbeitung abgleichen. Schalter ohne implementierten Effekt sichtbar deaktivieren oder als nicht verfügbar kennzeichnen. Eine Tone-Analyse darf nicht als erfolgreich durchgeführte Analyse erscheinen, wenn ihr Code leer ist.</li>
+<li>Kleine Adapter für vorhandene Text- und Sprachmethoden einführen. Die Tools-TTS-Funktion an <code>text_to_speech()</code> und dessen tatsächliche Parameter anbinden; Stimmen und Modelle für den gewählten Anbieter validieren.</li>
+<li>Die Kampagnen- und Trend-Aufrufe reparieren: einen vorhandenen Textclient erzeugen, die News-Abfrage an die vorhandene Methode anpassen und den undefinierten <code>job_id</code>-Verweis entfernen. Verarbeitung bleibt dabei kontrolliert; die eigentliche Scheduler-Anbindung folgt in P4.</li>
+<li>Vor einem Job prüfen, ob die benötigten Anbieter konfiguriert sind. Ein fehlender Schlüssel wird vor Medienproduktion gemeldet. Eine Konfigurationsprüfung ist keine Bestätigung, dass ein externer Anbieter erreichbar ist.</li>
+<li>Konfiguration atomar speichern und Schreibfehler an die API zurückgeben. Geheimnisse aus Job-Snapshots, Logs, Cache-Schlüsseln und normalen Konfigurationsantworten ausschließen; der Browser erhält den Status „hinterlegt“. Bestehende Schlüssel lassen sich ausdrücklich ersetzen oder löschen.</li>
+</ul>
+<h3>Abschlusskriterien</h3>
+<p>Formular, API und Worker verwenden dieselben Optionsnamen. Alte Einstellungen werden ohne stillen Verlust übernommen. Konfigurationsänderungen während eines Jobs wirken erst für neue Aufträge. Fehlende Voraussetzungen und Schreibfehler erscheinen verständlich; die Tools-TTS-Funktion ruft eine vorhandene Methode mit passenden Parametern auf.</p>
+<p><strong>Berührte Bereiche:</strong> <code>config.py</code>, neue Konfigurationsschemas, <code>api_clients.py</code> über Adapter, <code>agents.py</code>, <code>server/routers/generation.py</code>, <code>server/routers/tools.py</code>, <code>server/core/scheduler.py</code>, <code>ConfigContext.tsx</code>, vorhandene Formulare.</p></section><section class="report-section" id="section-6"><div class="section-heading"><span class="section-number">06</span><h2>P2 — Gemeinsame Projekte und Medien</h2><span class="phase-status">Lokal umgesetzt</span></div><h3>Vorgeschlagenes Datenmodell</h3>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>Entität</th>
+<th>Mindestinhalt</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Projekt</td>
+<td>UUID, Titel, Produktionsart, Erstellungs-/Änderungszeit, aktueller Zustand.</td>
+</tr>
+<tr>
+<td>Medium</td>
+<td>UUID, Projekt-ID, Rolle wie Quelle oder Endvideo, relativer Pfad, Medientyp, technische Eigenschaften, Herkunft.</td>
+</tr>
+<tr>
+<td>Auftrag</td>
+<td>UUID, Projekt-ID, Ablaufart, Zustand, wirksame Einstellungen ohne Geheimnisse, Start/Ende, Ergebnis-IDs, Fehler.</td>
+</tr>
+<tr>
+<td>Auftragsschritt</td>
+<td>Auftrag-ID, stabile Schritt-ID, Zustand, Schrittfortschritt, Zeitpunkte.</td>
+</tr>
+<tr>
+<td>Ereignis</td>
+<td>Auftrag-ID, fortlaufende Sequenz, Zeitpunkt, Nachrichtenart und bereinigter Inhalt.</td>
+</tr>
+</tbody>
+</table></div>
+<p>Neue Tabellen werden über versionierte Migrationen ergänzt. Die vorhandene OAuth-Tabelle und die bisherige Datenbank werden erhalten. Videodaten kommen nicht in SQLite; dort werden ihre Eigenschaften und Verweise gespeichert.</p>
+<h3>Arbeiten</h3>
+<ul>
+<li>Ein gemeinsames Repository für Projektdaten und einen Dienst für sichere Medienpfade ergänzen. Die Router verwenden diese Dienste, statt getrennte Ordnersuchen durchzuführen.</li>
+<li>Neue Produktionen unter <code>workspace/projects/&lt;project-id&gt;/</code> speichern. Darunter Quelle, Zwischenprodukte und Ausgaben getrennt ablegen. Der Titel dient der Anzeige; die UUID verhindert Kollisionen gleichnamiger Themen.</li>
+<li>Bestehende Pipelines zuerst über einen Projektkontext und Adapter anbinden. Ausgabeordner nur an gezielten Schnittstellen übergeben; Dateinamen innerhalb einer Pipeline können anfangs erhalten bleiben.</li>
+<li>Für Altbestände einen wiederholbaren Import mit Vorschau vorsehen. Er durchsucht ausschließlich ausdrücklich ausgewählte Produktionsordner und erkennt die bekannten Ausgabearten. Themenordner im Repo werden gezielt angegeben; das gesamte Repository wird nicht blind als Medienbestand importiert.</li>
+<li>Beim Import bestehende Videos zunächst an ihrem Ort belassen. Ein Herkunftsschlüssel verhindert doppelte Datensätze bei erneutem Import. Unbekannte Zwischenprodukte werden als solche behandelt; „Quelle“ oder „Endvideo“ wird nicht geraten.</li>
+<li>Neue Medien über ihre registrierte ID ausliefern. Intern auflösen, erlaubten Speicherbereich prüfen und Symlinks beziehungsweise Pfadwechsel außerhalb dieser Grenzen ablehnen. Übergangsweise alte API-Pfade nur für registrierte Altmedien zulassen.</li>
+<li>Upload-Namen als Anzeigeinformation behandeln; Dateinamen und Zielpfade serverseitig erzeugen. Größen-/Medientypgrenzen und verfügbare Schreibverzeichnisse prüfen.</li>
+<li>Löschregeln festlegen: Neue Projekte dürfen nur ihre eigenen Medien löschen. Bei importierten Altbeständen zunächst lediglich den Eintrag entfernen; eine spätere Datei-Löschung muss ausdrücklich gewählt werden. Laufende Jobs verhindern Löschung.</li>
+</ul>
+<h3>Abschlusskriterien</h3>
+<p>Zwei gleichnamige Projekte überschreiben sich nicht. Ein erneuter Import erzeugt keine Duplikate und verschiebt keine Altdateien. Registrierte Endvideos können nach einem Neustart geladen werden. Dateizugriffe und Löschung bleiben innerhalb der festgelegten Bereiche.</p>
+<p><strong>Berührte Bereiche:</strong> <code>server/core/database.py</code>, neue Migrations-, Projekt-, Medien- und Pfaddienste, History-/Publish-Router, Upload-Router, gezielte Ausgabeordner-Schnittstellen in den Pipelines.</p></section><section class="report-section" id="section-7"><div class="section-heading"><span class="section-number">07</span><h2>P3 — Einheitliche und dauerhafte Aufträge</h2><span class="phase-status">Lokal umgesetzt</span></div><h3>Zustände und Ereignisse</h3>
+<p>Der vorgeschlagene Zustandsvorrat lautet: <code>queued</code>, <code>running</code>, <code>awaiting_input</code>, <code>cancel_requested</code>, <code>completed</code>, <code>failed</code>, <code>cancelled</code> und <code>interrupted</code>. <code>awaiting_input</code> bildet die Auswahlphase des Clippers ab. <code>interrupted</code> zeigt an, dass die laufende Verarbeitung durch einen Backend-Neustart abgebrochen wurde. Abgeschlossene Zustände dürfen durch verspätete Worker-Meldungen nicht wieder zu „running“ werden.</p>
+<p>Alle Ereignisse erhalten einen gemeinsamen Umschlag mit Job-ID, Sequenz, Zeitpunkt, Nachrichtenart und Nutzdaten. Der Browser bekommt beim Verbinden einen vollständigen Zustand. Änderungen und Logs folgen als Ereignisse mit aufsteigender Sequenz. Ein gemeinsamer Frontend-Client verarbeitet Ergebnisse, Fehler und Abbruch auch dann, wenn der Job schon vor dem Verbinden fertig war.</p>
+<h3>Arbeiten</h3>
+<ul>
+<li>SQLite wird die dauerhafte Quelle für Jobs und Ereignisse. Stoppsignale und aktive Worker-Verweise bleiben im RAM, weil sie Prozessobjekte sind. Datenbanksitzungen werden pro Ausführung getrennt verwendet.</li>
+<li>Den vorhandenen Pool mit zwei zentralen Workern behalten. Zusätzliche Studio-Threads werden als nicht integrierter Bereich gekennzeichnet; aktive Produktionswege sollen den gemeinsamen Pool verwenden.</li>
+<li>Gesamtfortschritt aus stabilen Schritt-IDs berechnen; Schrittfortschritt separat anzeigen. Optionale übersprungene Schritte werden mitgerechnet. 100 Prozent und <code>completed</code> gelten erst nach Prüfung und Registrierung der Endausgabe.</li>
+<li>Status zunächst speichern und danach aussenden. Falls die Verbindung abreißt, kann der Browser den aktuellen Zustand erneut lesen. Job-Ereignisse haben eine begrenzte Aufbewahrung; unbegrenzt wachsende RAM-Logs entfallen.</li>
+<li>Doppelte Starts und doppelte Clipper-Renderaufrufe durch eindeutige Auftragskennungen und erlaubte Zustandsübergänge verhindern. Ein bewusst erneuter Versuch erhält eine neue Versuch-ID und bleibt dem Projekt zugeordnet.</li>
+<li>Abbruch korrekt trennen: anfordern → Worker beendet oder bestätigt → „abgebrochen“. Lokale FFmpeg-Unterprozesse können kontrolliert beendet werden; externe Aufrufe erhalten Timeouts und Abbruchprüfungen. Wenn ein Anbieter keine Abbruchfunktion hat, bleibt das im Status sichtbar.</li>
+<li>Bei einem Neustart zuvor laufende Jobs auf <code>interrupted</code> setzen. Gespeicherte Auswahlzustände bleiben abrufbar. Wartende Produktionsaufträge werden zunächst ebenfalls nicht automatisch neu ausgeführt; ein gezielter neuer Versuch ist erforderlich.</li>
+<li>Für Wiederverbindung gemeinsame API-/WebSocket-Helfer, begrenzte Wiederholungen und einen HTTP-Statusabruf als Rückfall ergänzen. Alte Endpunkte liefern während der Umstellung kompatible Felder zusätzlich zu den neuen IDs.</li>
+</ul>
+<h3>Abschlusskriterien</h3>
+<p>Ein früher Abschluss, ein Fehler und ein Verbindungsabbruch werden auf allen angebundenen Seiten korrekt angezeigt. Nach einem Backend-Neustart bleiben Projekt und letzter Status sichtbar. Ein Abbruch wird erst nach tatsächlichem Ende bestätigt. Ein Neustart oder Doppelklick verursacht keinen automatischen zusätzlichen Anbieterauftrag.</p>
+<p><strong>Berührte Bereiche:</strong> <code>server/core/queue.py</code>, neue Job-Schemas und Repository-Methoden, Worker-Adapter, WebSocket-Endpunkte, <code>web/src/lib/</code> und Statusbehandlung auf Produktionsseiten.</p></section><section class="report-section" id="section-8"><div class="section-heading"><span class="section-number">08</span><h2>P4 — Bestehende Produktionswege verbinden</h2><span class="phase-status">Lokal umgesetzt</span></div><h3>Empfohlene Reihenfolge</h3>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>Reihenfolge</th>
+<th>Ablauf</th>
+<th>Arbeitspaket</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1</td>
+<td>Quick Creator</td>
+<td>Projektkontext, feste Einstellungen, neue Jobs, Gesamtfortschritt und Registrierung der Enddatei.</td>
+</tr>
+<tr>
+<td>2</td>
+<td>Video Tools</td>
+<td>Konvertierung und Untertitel als nachvollziehbare Aufträge; Ergebnisse im gemeinsamen Bestand. TTS über den reparierten Adapter.</td>
+</tr>
+<tr>
+<td>3</td>
+<td>Magic Clipper</td>
+<td>Analyse → gespeicherte Auswahl → Rendern; Zeiten und Clipdauer validieren; Sprache aus wirksamen Optionen übernehmen.</td>
+</tr>
+<tr>
+<td>4</td>
+<td>Director und Explainer</td>
+<td>Ausgabe registrieren, Optionen konsequent anwenden, Wiederverwendung und Abbruch angleichen.</td>
+</tr>
+<tr>
+<td>5</td>
+<td>VideoFX</td>
+<td>Als bestehende Browserautomatisierung kennzeichnen, Job/Ergebnis registrieren und Startstatus von bestätigter Anmeldung trennen.</td>
+</tr>
+<tr>
+<td>6</td>
+<td>Kampagnen</td>
+<td>Produktion über den stabilisierten Quick-Creator-Dienst; Kampagne, Projekt und Job verknüpfen.</td>
+</tr>
+</tbody>
+</table></div>
+<h3>Gemeinsame Regeln</h3>
+<ul>
+<li>Für neue Projekte kein stiller Cache aus einem gleichnamigen alten Themenordner. Wiederverwendung innerhalb eines Projekts wird anhand Quell-Fingerprint, bereinigter Einstellungen, Anbieter/Modell und Pipeline-Version bewertet. Geänderte Schritte machen abhängige Zwischenprodukte ungültig.</li>
+<li>Vor Abschluss prüfen, ob die Enddatei existiert, lesbar ist und erwartete Video-/Audiostreams enthält. Zuerst Datei erzeugen und prüfen, danach Medienmetadaten und Jobabschluss in einer Datenbanktransaktion speichern.</li>
+<li>Dateisystem und SQLite bilden keine gemeinsame Transaktion. Ein Absturz zwischen Dateierzeugung und Registrierung muss deshalb durch eine gezielte Wiederabgleich-Funktion erkennbar sein; verwaiste Dateien werden nicht automatisch gelöscht.</li>
+<li>Anbieterfehler nicht durch unmarkierte schwarze Videos als Erfolg verdecken. Ersatzmaterial, ausgelassene optionale Schritte und fehlende Assets müssen in einem Ergebnisbericht sichtbar sein. Pflichtschritte, die scheitern, beenden den Job mit Fehler.</li>
+<li>Clipper-Zeitwerte numerisch prüfen: Start ≥ 0, Ende &gt; Start, Ende innerhalb der Quelldauer, erlaubte maximale Ausschnittlänge. Die festen Sprachwerte in Analyse und Untertiteln durch die bestehende wirksame Spracheinstellung ersetzen.</li>
+<li>Für Director und Explainer Quellzeit, Sprachdauer und fehlende Assets nachvollziehbar behandeln. Die Verbesserung der eigentlichen Schnittästhetik ist eine spätere Funktion.</li>
+<li>Kampagnen bleiben zunächst Produktionstermine. Neue Aktivierung erfordert gültige Einstellungen; aktive Alt-Kampagnen werden bei der Migration pausiert und gezielt wieder aktiviert. Der lokale Einzelprozess-Scheduler verwendet eine dauerhafte Ausführungssperre, damit dieselbe Fälligkeit nicht zweimal eingeplant wird. Eine automatische Veröffentlichung kommt später.</li>
+</ul>
+<h3>Abschlusskriterien</h3>
+<p>Der Quick Creator durchläuft Eingabe, Job, Datei, Projektregistrierung, History und Download mit denselben IDs. Auch Tools und angeschlossene weitere Abläufe registrieren ihre tatsächlichen Endausgaben. Ein geändertes Sprach-/Stimmenprofil verwendet nicht still eine alte Ausgabe. Eine Kampagne startet höchstens einen Auftrag pro Fälligkeit.</p>
+<p>Die Integration eines externen Wegs gilt erst nach einer ausdrücklich dokumentierten Anbieterprüfung als praktisch bestätigt. Der Plan verlangt keine sofortige kostenpflichtige Produktion: technische Vertragsprüfungen können mit kontrollierten Testantworten erfolgen; reale Anbieterläufe werden später gezielt abgegrenzt.</p>
+<p><strong>Berührte Bereiche:</strong> Pipeline-Router, <code>pipeline.py</code>, <code>pipeline_shorts.py</code>, Director-/Explainer-Engine, VideoFX-Router, Scheduler und neue Ablaufadapter. Große Dateien werden nur an notwendigen Übergabestellen angepasst.</p></section><section class="report-section" id="section-9"><div class="section-heading"><span class="section-number">09</span><h2>P5 — Echte Daten in der vorhandenen Oberfläche</h2><span class="phase-status">Lokal umgesetzt</span></div><figure class="current-shot"><a href="dashboard-current.png" target="_blank"><img src="dashboard-current.png" width="1440" height="1100" alt="Medienwerk-Dashboard nach Stabilisierung mit tatsächlichem leerem Projektbestand" loading="lazy"></a><figcaption>Geprüfter lokaler Zustand nach P5: Projekt- und Medienzahlen kommen aus SQLite. Der normale Bestand enthält keine synthetischen Testprojekte.</figcaption></figure><h3>Arbeiten</h3>
+<ul>
+<li>History liest das Projektregister, unterscheidet alle vorhandenen Produktionsarten und zeigt echte Endmedien. Noch laufende Projekte sind erkennbar; Endvideos werden nicht allein wegen eines Ordnernamens einem falschen Typ zugeordnet.</li>
+<li>Dashboard-Projektzahl, letzte Produktionen und Auftragszustände aus denselben Daten ableiten. Kennzahlen ohne vorhandene Datenbasis entfernen oder klar als nicht verfügbar kennzeichnen. Keine erfundene Kosten-/Erfolgsstatistik ergänzen.</li>
+<li>„API Connected“ an den wirklichen Backend-Zustand anbinden. Lokale Nichterreichbarkeit und die Konfiguration eines KI-Anbieters sind unterschiedliche Zustände und werden getrennt angezeigt.</li>
+<li>Publish verwendet denselben Medienbestand und filtert nach tatsächlich unterstützten Ausgaben. YouTube bleibt der vorhandene Uploadweg; eine Verbindung gilt erst nach echter Prüfung dieses Uploadwegs als bestätigt.</li>
+<li>Simulierte Social-Tokens erzeugen keinen sichtbaren echten Anmeldestatus. TikTok/Instagram-Auswahl und eine wirkungslose Mehrfachveröffentlichung deaktivieren beziehungsweise erklären, bis wir diese Funktionen später implementieren.</li>
+<li>Timeline-Editor, Agentenseite, Brand-Oberfläche und Schalter ohne Verarbeitung verständlich als unvollständig kennzeichnen. Das beseitigt irreführende Bedienung, ohne diese neuen Funktionen im Stabilisierungsschritt auszubauen.</li>
+<li>Fehler, Unterbrechung, Abbruch und bereitstehende Auswahl in den vorhandenen Seiten aus den gemeinsamen Zuständen darstellen. Lange Fehlermeldungen verständlich zusammenfassen und Details im Job-Protokoll anbieten.</li>
+</ul>
+<h3>Abschlusskriterien</h3>
+<p>Dashboard, History und Publish zeigen denselben Projektbestand mit nachvollziehbaren Filtern. Leere Bestände zeigen echte Leerzustände. Eine nicht implementierte Funktion behauptet weder eine erfolgreiche Verbindung noch eine erledigte Verarbeitung.</p>
+<p><strong>Berührte Bereiche:</strong> Dashboard, Sidebar, History, Publish, vorhandene Produktionsseiten, gemeinsame Status-/Ergebnis-Komponenten. Das vorhandene Design bleibt die Grundlage.</p></section><section class="report-section" id="section-10"><div class="section-heading"><span class="section-number">10</span><h2>P6 — Geplante Abnahme und Übergabe</h2><span class="phase-status">Lokal umgesetzt</span></div><p>Die folgenden Prüfungen sind Abschlusskriterien für die spätere Umsetzung. Bei der Erstellung dieses Plans werden keine Anwendungstests hinzugefügt oder ausgeführt.</p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>Prüfbereich</th>
+<th>Geplantes Szenario</th>
+<th>Erwartung</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Konfiguration</td>
+<td>Alte Schlüssel, unterschiedliche Aliaswerte, fehlerhafte Optionen, fehlender Schlüssel.</td>
+<td>Keine stillen Verluste; verständliche Fehler; feste Einstellungen pro Job.</td>
+</tr>
+<tr>
+<td>Projekte</td>
+<td>Zwei gleiche Titel, wiederholter Altimport, Datei fehlt, Projekt löschen.</td>
+<td>Keine Überschreibung; keine Duplikate; keine fremde Datei gelöscht.</td>
+</tr>
+<tr>
+<td>Jobs</td>
+<td>Früher Abschluss, WebSocket-Neuverbindung, Doppelklick, Fehler.</td>
+<td>Browser zeigt dauerhaften richtigen Zustand und nachvollziehbare Ergebnisse.</td>
+</tr>
+<tr>
+<td>Neustart</td>
+<td>Backend während eines Laufs neu starten.</td>
+<td>Job als unterbrochen sichtbar; kein automatischer neuer Anbieterauftrag.</td>
+</tr>
+<tr>
+<td>Abbruch</td>
+<td>Wartenden Auftrag und lokalen FFmpeg-Lauf abbrechen; externen Aufruf simulieren.</td>
+<td>Zustände entsprechen dem tatsächlichen Verarbeitungsschritt.</td>
+</tr>
+<tr>
+<td>Lokales Medium</td>
+<td>Eigenes kurzes Video nach 9:16 und angebotenem 1:1 konvertieren.</td>
+<td>Korrekte Maße; registriertes Projekt; Wiedergabe und Download.</td>
+</tr>
+<tr>
+<td>Quick Creator</td>
+<td>Kontrollierte Anbieterantworten und später ein kleiner realer Lauf.</td>
+<td>Eingabe → Endvideo → History → Download vollständig verbunden; reale Prüfung separat dokumentiert.</td>
+</tr>
+<tr>
+<td>Weitere Abläufe</td>
+<td>Clipper-Auswahl, Explainer mit geänderten Optionen, Director-Enddatei.</td>
+<td>Zeiten gültig; Wiederverwendung korrekt; Ergebnis im gemeinsamen Bestand.</td>
+</tr>
+<tr>
+<td>Kampagne</td>
+<td>Eine Fälligkeit doppelt prüfen und alte aktive Kampagne importieren.</td>
+<td>Ein Job je Fälligkeit; Alt-Kampagne nicht unbemerkt aktiv.</td>
+</tr>
+<tr>
+<td>Oberfläche</td>
+<td>Leerer Bestand, nicht erreichbares Backend, nicht implementierte Social-Funktion.</td>
+<td>Verständliche Zustände und echte Daten.</td>
+</tr>
+<tr>
+<td>Migration</td>
+<td>Sicherung herstellen, Migration ausführen, dokumentierten Rückweg anwenden.</td>
+<td>Daten und Programmstand passen zusammen; neue Daten werden beim Rückweg berücksichtigt.</td>
+</tr>
+<tr>
+<td>Installation</td>
+<td>Sauberer lokaler Installationsstand, Frontend-Build und Start.</td>
+<td>Dokumentation und gebundene Abhängigkeiten reichen zum lokalen Start.</td>
+</tr>
+</tbody>
+</table></div>
+<p>Ein automatischer Prüfbestand wird erst im Umsetzungsschritt eingerichtet, wenn wir die Prüfung der Änderungen beauftragen. Er sollte lokal arbeiten und standardmäßig keine externen Anbieter oder Veröffentlichungen aufrufen.</p>
+<p>Die Übergabe enthält eine aktualisierte Architekturbeschreibung, Schemaversionen, bekannte Restgrenzen, die tatsächlich ausgeführten Prüfungen und eine kurze Anleitung für neue Module. Verbindliche Aussage ist jeweils, was geprüft wurde: ein erfolgreicher Build ersetzt keinen realen Anbieter- oder Medienlauf.</p></section><section class="report-section" id="section-11"><div class="section-heading"><span class="section-number">11</span><h2>Zuordnung der 15 Analysebefunde</h2></div><div class="table-wrap"><table>
+<thead>
+<tr>
+<th>Befund</th>
+<th>Bearbeitung</th>
+<th>Umfang</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>F01 — Ergebnisse fehlen in History</td>
+<td>P2, P4, P5</td>
+<td>Gemeinsame Registrierung und Bestand.</td>
+</tr>
+<tr>
+<td>F02 — WaveSpeed-Schlüsselnamen</td>
+<td>P1</td>
+<td>Eindeutiger Name mit Altkompatibilität.</td>
+</tr>
+<tr>
+<td>F03 — Kampagnenfehler</td>
+<td>P1, P4</td>
+<td>Aufruf korrigieren und Scheduler mit Jobs verbinden.</td>
+</tr>
+<tr>
+<td>F04 — Tools-TTS fehlt Methode</td>
+<td>P1, P4</td>
+<td>Adapter und Registrierung; echte Anbieterprüfung separat.</td>
+</tr>
+<tr>
+<td>F05 — Beispielzahlen/Status</td>
+<td>P5</td>
+<td>Echte Daten oder eindeutiger Leerzustand.</td>
+</tr>
+<tr>
+<td>F06 — Timeline wirkungslos</td>
+<td>P5, später</td>
+<td>Jetzt kennzeichnen; vollständiger Editor später.</td>
+</tr>
+<tr>
+<td>F07 — Social-Simulation</td>
+<td>P5, später</td>
+<td>Jetzt keine falschen Verbindungen; neue Publisher später.</td>
+</tr>
+<tr>
+<td>F08 — Veraltete Wiederverwendung</td>
+<td>P2, P4</td>
+<td>Projekt-IDs und Fingerprints.</td>
+</tr>
+<tr>
+<td>F09 — Fortschritt/Abbruch</td>
+<td>P3, P4</td>
+<td>Gemeinsame Zustände und Worker-Verträge.</td>
+</tr>
+<tr>
+<td>F10 — Sprache/Format</td>
+<td>P1, P4</td>
+<td>Vorhandene Optionen konsistent anwenden; Erweiterungen später.</td>
+</tr>
+<tr>
+<td>F11 — Brand-Platzhalter</td>
+<td>P5, später</td>
+<td>Jetzt kennzeichnen; Bedienoberfläche später.</td>
+</tr>
+<tr>
+<td>F12 — Agentenstudio unverbunden</td>
+<td>P5, später</td>
+<td>Jetzt kennzeichnen; vollständiger Ablauf später.</td>
+</tr>
+<tr>
+<td>F13 — Wirkungsloser Schalter</td>
+<td>P1, P5</td>
+<td>Bestehende Wirkung prüfen; nicht implementierte Option deaktivieren.</td>
+</tr>
+<tr>
+<td>F14 — Jobs im RAM</td>
+<td>P2, P3</td>
+<td>Dauerhafte Zustände; gezielter Neustart eines Versuchs.</td>
+</tr>
+<tr>
+<td>F15 — Öffentlicher Betrieb ungeschützt</td>
+<td>P1, P2, später</td>
+<td>Jetzt Secret-Ausgaben und Dateigrenzen korrigieren; Anmeldung und Mehrbenutzer-/Onlinebetrieb später.</td>
+</tr>
+</tbody>
+</table></div>
+<p>Die Stabilisierung ist keine vollständige Umsetzung aller ursprünglich beworbenen Funktionen. Die Tabelle macht sichtbar, welche Befunde repariert werden und welche Bereiche ausdrücklich als spätere Entwicklung bestehen bleiben.</p></section><section class="report-section" id="section-12"><div class="section-heading"><span class="section-number">12</span><h2>Migration, Rückweg und Original-Updates</h2></div><h3>Migration und Wiederherstellung</h3>
+<ul>
+<li>Datenbankänderungen zunächst additiv und versioniert durchführen. Alte Medien und Einstellungen vor der Übernahme sichern; bei Fehlern bleibt der bisherige Datenbestand erhalten.</li>
+<li>Altimporte und neue Ausgaben voneinander unterscheiden. Bereits registrierte Medien erneut erkennen; fehlende Dateien melden. Eine Bereinigung ist kein Bestandteil des Imports.</li>
+<li>Einen Programm-Rollback mit der passenden Schemaversion verbinden. Vor Rücksetzen der Datenbank neue seit der Migration entstandene Projekte und Medien sichern/exportieren; ein altes Backup allein würde deren Metadaten verlieren.</li>
+<li>Legacy-Endpunkte während der schrittweisen Umstellung über Adapter erhalten. Eine dokumentierte Übergangsfrist endet erst, wenn alle vorhandenen Frontend-Seiten die gemeinsamen Verträge verwenden.</li>
+<li>Eine größere Änderung pro Paket einführen. So lassen sich Fehler der Konfiguration, Migration oder Job-Verbindung getrennt zurückverfolgen.</li>
+</ul>
+<h3>Upstream-Verträglichkeit</h3>
+<p>Für jedes Paket ist eine kleine Serie nachvollziehbarer Commits vorgesehen: Konfiguration, Datenmodell, Jobmodell, einzelne Ablaufadapter und einzelne UI-Verbindungen. Neue Services und Schemas erhalten eigene Dateien. <code>pipeline.py</code> und <code>api_clients.py</code> bekommen gezielte Übergabestellen statt einer vollständigen Umschreibung.</p>
+<p>Neue Original-Updates werden nach <a href="UPSTREAM.md">UPSTREAM.md</a> in einem eigenen Update-Branch geprüft und zusammengeführt. Vor dem Merge muss der lokale Arbeitsstand bewusst gesichert sein. Anpassungen am Programm werden gemeinsam mit Datenbankschema und vorhandenen API-Verträgen betrachtet. Kleine Adapter können Konflikte reduzieren; konfliktfreie Updates werden dadurch nicht garantiert.</p></section><section class="report-section" id="section-13"><div class="section-heading"><span class="section-number">13</span><h2>Fertig-Kriterium für diese Entwicklungsrunde</h2></div><div class="goal-check"><p>Diese Runde gilt als abgeschlossen, wenn der lokale Start reproduzierbar ist, Einstellungen konsistent wirken, Projekte und Jobs dauerhaft gespeichert werden, der Quick Creator durchgängig verbunden ist, die in P4 aufgeführten Produktionswege den gemeinsamen Vertrag verwenden, registrierte Ergebnisse auf den vorhandenen Seiten erscheinen und unvollständige Funktionen eindeutig erkennbar sind. Nicht real geprüfte Anbieterwege bleiben ausdrücklich als solche gekennzeichnet.</p>
+<p>Danach planen wir deine individuellen Anpassungen auf dieser dokumentierten Grundlage. Der empfohlene erste Umsetzungsschritt ist <strong>P0, anschließend P1</strong>. Neue Funktionen werden nicht vorgezogen, um die Abschlusskriterien dieser Runde zu ersetzen.</p></div></section><section class="report-section" id="section-14"><div class="section-heading"><span class="section-number">14</span><h2>Umsetzung mit Subagents</h2></div><p>Die Aufgaben werden gemäß deiner Vorgabe an Subagents mit <strong><code>gpt-6-luna</code> und Reasoning <code>high</code></strong> vergeben. Der Hauptagent definiert gemeinsame Verträge, koordiniert die Übergaben und übernimmt die abschließende Prüfung selbst.</p>
+<p>Maximal drei Worker können gleichzeitig neben dem Hauptagent arbeiten. Abhängige Etappen bleiben in der vorgesehenen Reihenfolge; gemeinsame Dateien und Datenbankmigrationen haben jeweils einen schreibenden Agenten. Größere unabhängige Pakete erhalten isolierte Worktrees auf Grundlage des in P0 gesicherten angepassten Stands.</p>
+<p>Die Rollen für P0–P6, Übergabekriterien, vorhandenen Skills und geprüften GitHub-Ergänzungen stehen in <a href="AGENT_WORKFLOW.md">AGENT_WORKFLOW.md</a>. Der lokale Skill-Dateibestand steht in <a href="SKILLS_INVENTORY.csv">SKILLS_INVENTORY.csv</a>. Externe Kandidaten wurden recherchiert, noch nicht installiert.</p></section><footer class="footer"><p>Gestaltung aus Medienwerk: Outfit-Schrift sowie Farben und Kartenstil aus <code>web/src/app/globals.css</code>. Der helle Modus ist eine Leseoption dieses Plans. Anwendungscode und Laufzeitdaten werden durch die Planerstellung nicht geändert.</p><a href="STABILIZATION_PLAN.md" download>Plan speichern</a><a href="PLATFORM_ANALYSIS.md" download>Analyse speichern</a><a href="#top">Zum Anfang ↑</a></footer></main></div></div><script>
+const root=document.documentElement;
+document.querySelector('#theme-toggle').addEventListener('click',()=>{root.dataset.theme=root.dataset.theme==='light'?'dark':'light';document.querySelector('#theme-toggle').textContent=root.dataset.theme==='light'?'Dunkel':'Hell'});
+const observer=new IntersectionObserver(entries=>{for(const e of entries){if(e.isIntersecting)document.querySelectorAll('.contents a').forEach(a=>a.classList.toggle('active',a.hash==='#'+e.target.id))}},{rootMargin:'-10% 0px -75% 0px'});
+document.querySelectorAll('.report-section').forEach(s=>observer.observe(s));
+</script></body></html>

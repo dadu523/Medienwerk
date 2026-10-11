@@ -1,0 +1,812 @@
+<!DOCTYPE html><html lang="de" data-theme="dark"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="color-scheme" content="dark light"><title>Medienwerk · Plattformanalyse</title><style>
+@font-face{font-family:Outfit;src:url("outfit.woff2") format("woff2");font-weight:100 900;font-display:swap}
+:root{--bg-main:#060608;--bg-glass:rgba(20,20,25,.76);--border-glass:rgba(255,255,255,.10);--accent:#66fcf1;--text:#eeeef2;--muted:#a1a1ad;--panel:#111116;--soft:rgba(255,255,255,.045);--warning:#ffcb83;--grid:rgba(255,255,255,.019);color-scheme:dark}
+:root[data-theme=light]{--bg-main:#f5f7f8;--bg-glass:rgba(255,255,255,.85);--border-glass:rgba(10,30,40,.14);--accent:#006c65;--text:#182027;--muted:#54616a;--panel:#fff;--soft:rgba(20,40,60,.045);--warning:#875000;--grid:rgba(15,40,60,.035);color-scheme:light}
+*{box-sizing:border-box;min-width:0}html{scroll-behavior:smooth;scroll-padding-top:92px}body{margin:0;background-color:var(--bg-main);color:var(--text);font-family:Outfit,system-ui,sans-serif;line-height:1.65;background-image:linear-gradient(var(--grid) 1px,transparent 1px),linear-gradient(90deg,var(--grid) 1px,transparent 1px);background-size:40px 40px;font-size:16px}a{color:var(--accent);text-underline-offset:4px;overflow-wrap:anywhere}button{font:inherit;color:var(--text);cursor:pointer;background:var(--soft);border:1px solid var(--border-glass);padding:9px 15px;border-radius:10px}button:hover{border-color:var(--accent)}a:focus-visible,button:focus-visible,summary:focus-visible{outline:2px solid var(--accent);outline-offset:4px}img{max-width:100%;display:block;border-radius:10px}p{margin:0 0 18px}h1,h2,h3{line-height:1.17;letter-spacing:-.025em}h1{font-size:clamp(39px,5vw,76px);font-weight:600;max-width:850px;margin:18px 0 24px}h2{font-size:clamp(27px,3vw,38px);font-weight:550;margin:0}h3{font-size:24px;font-weight:550;margin:30px 0 16px}ul{padding-left:22px;margin:0 0 22px}li{margin:10px 0}strong{font-weight:600}code{font-family:ui-monospace,SFMono-Regular,monospace;font-size:.82em;color:var(--accent);background:var(--soft);padding:2px 5px;border-radius:4px;overflow-wrap:anywhere;word-break:break-word}figure{margin:0}figcaption{font-size:13px;color:var(--muted);line-height:1.5;margin-top:14px}
+.topbar{position:sticky;top:0;z-index:10;border-bottom:1px solid var(--border-glass);background:var(--bg-glass);backdrop-filter:blur(20px);display:flex;justify-content:space-between;align-items:center;gap:15px;padding:14px max(24px,calc((100vw - 1400px)/2))}.identity{display:flex;align-items:center;gap:10px;font-size:17px;font-weight:600;text-decoration:none;color:var(--text)}.logo{width:30px;height:30px;border:1px solid var(--accent);border-radius:9px;display:grid;place-items:center;color:var(--accent)}.top-actions{display:flex;align-items:center;gap:14px;font-size:13px}.local-tag{border:1px solid var(--border-glass);border-radius:30px;padding:5px 10px;color:var(--muted)}.frame{max-width:1400px;margin:auto;padding:0 32px}.hero{padding:74px 0 56px}.eyebrow{text-transform:uppercase;font-size:12px;letter-spacing:.16em;color:var(--accent);font-weight:600}.lede{font-size:23px;color:var(--muted);line-height:1.5;max-width:870px}.hero-meta{display:flex;flex-wrap:wrap;gap:8px 20px;color:var(--muted);font-size:13px;margin-top:28px}.metrics{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:14px;margin:38px 0 0}.metric{border:1px solid var(--border-glass);background:var(--bg-glass);border-radius:16px;padding:22px}.metric b{display:block;color:var(--accent);font-size:38px;line-height:1.2;font-weight:500}.metric span{font-size:14px;color:var(--muted)}.takeaways{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px;margin-bottom:56px}.takeaway{padding:25px;border:1px solid var(--border-glass);border-radius:16px;background:var(--bg-glass)}.takeaway h3{font-size:21px;margin:12px 0}.takeaway p{font-size:15px;color:var(--muted);margin:0}.takeaway small{color:var(--accent);font-weight:600;text-transform:uppercase;letter-spacing:.06em}.layout{display:grid;grid-template-columns:252px minmax(0,1fr);gap:48px;align-items:start}.contents{position:sticky;top:98px;max-height:calc(100vh - 115px);overflow-y:auto;padding-right:8px;font-size:13px}.contents summary{font-size:12px;text-transform:uppercase;letter-spacing:.1em;color:var(--muted);margin-bottom:16px;cursor:pointer}.contents nav{display:flex;flex-direction:column;gap:3px}.contents a{padding:7px 10px;color:var(--muted);text-decoration:none;border-left:2px solid transparent;line-height:1.45}.contents a span{display:inline-block;width:25px;color:var(--accent);font-size:11px}.contents a:hover,.contents a.active{background:var(--soft);color:var(--text);border-color:var(--accent)}.report-section{padding-bottom:58px;margin-bottom:45px;border-bottom:1px solid var(--border-glass);overflow-wrap:anywhere}.section-heading{display:flex;gap:15px;align-items:baseline;margin-bottom:29px}.section-number{color:var(--accent);font-size:15px;font-weight:500}.report-section p{max-width:84ch}.sources{font-size:12px;color:var(--muted);line-height:1.9;margin-top:24px}.sources code{color:var(--muted);background:none;padding:0}.table-wrap{width:100%;margin:25px 0 30px;border:1px solid var(--border-glass);border-radius:14px;overflow:hidden}table{width:100%;border-collapse:collapse;table-layout:fixed;font-size:14px;text-align:left;line-height:1.55}th{background:var(--soft);font-size:11px;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);font-weight:600}td,th{padding:15px 16px;vertical-align:top;overflow-wrap:anywhere}td{border-top:1px solid var(--border-glass)}td:first-child{font-weight:550}tr:hover td{background:var(--soft)}table:has(th:nth-child(4)) th:first-child{width:55px}table:has(th:nth-child(4)) th:nth-child(2){width:23%}#section-16 th:first-child{width:85px}#section-16 th:nth-child(2){width:55%}
+.illustration{display:grid;grid-template-columns:minmax(0, .95fr) minmax(0,1fr);gap:28px;align-items:center;background:var(--bg-glass);border:1px solid var(--border-glass);border-radius:18px;padding:28px;margin:0 0 35px}.diagram{width:100%;height:auto;max-width:380px;display:block;margin:auto;overflow:visible}.node{fill:var(--panel);stroke:var(--border-glass);stroke-width:1.5}.node.accent{stroke:var(--accent);fill:var(--soft)}.node.warning{stroke:var(--warning);stroke-dasharray:5 4}.node-title{fill:var(--text);font:500 19px Outfit,system-ui,sans-serif}.node-sub{fill:var(--muted);font:14px Outfit,system-ui,sans-serif}.edge{fill:none;stroke:var(--accent);stroke-width:1.6}.edge-label{fill:var(--muted);font:12px Outfit,system-ui,sans-serif}.figure-text h3{margin:14px 0 18px;font-size:29px}.figure-text p,.figure-text li{font-size:15px;color:var(--muted)}.screenshots{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:20px;margin:26px 0 35px}.screenshots figure{background:var(--bg-glass);border:1px solid var(--border-glass);border-radius:15px;padding:12px}.evidence{border:1px solid var(--border-glass);background:var(--bg-glass);border-radius:13px;margin-top:16px;overflow:hidden}.evidence summary{padding:16px 20px;cursor:pointer;font-size:14px;color:var(--accent)}.source-note{padding:0 20px;font-size:12px;color:var(--muted)}.code-surface{width:100%;font-size:12px;overflow:hidden}.code-surface diffs-container{max-width:100%}.footer{margin:0 0 50px;padding:24px;border:1px solid var(--border-glass);border-radius:16px;color:var(--muted);font-size:14px}.footer a{margin-right:15px}.backtop{font-size:13px;display:inline-block;margin-top:10px}
+@media(min-width:1200px){.frame{padding:0 48px}.layout{gap:60px}}
+@media(max-width:1000px){.layout{grid-template-columns:minmax(0,1fr)}.contents{position:static;max-height:none;border:1px solid var(--border-glass);border-radius:15px;padding:18px;margin-bottom:15px}.contents nav{display:grid;grid-template-columns:repeat(2,minmax(0,1fr))}.hero{padding-top:50px}.takeaways{gap:10px}.takeaway{padding:18px}}
+@media(max-width:650px){.frame{padding:0 18px}.topbar{padding:12px 18px}.top-actions{gap:8px}.local-tag{display:none}.top-actions a{display:none}.hero{padding:38px 0}.lede{font-size:19px}.metrics{grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin-top:25px}.metric{padding:16px}.metric b{font-size:30px}.takeaways{grid-template-columns:minmax(0,1fr);margin-bottom:35px}.contents nav{grid-template-columns:minmax(0,1fr)}.illustration{grid-template-columns:minmax(0,1fr);padding:18px;gap:15px}.figure-text h3{font-size:25px}.screenshots{grid-template-columns:minmax(0,1fr)}.section-heading{gap:10px}.report-section{padding-bottom:35px;margin-bottom:35px}table{font-size:12px}td,th{padding:9px 8px}th{font-size:10px}table:has(th:nth-child(4)) th:first-child{width:36px}table:has(th:nth-child(4)) th:nth-child(2){width:20%}#section-16 th:first-child{width:60px}#section-16 th:nth-child(2){width:45%}h3{font-size:22px}.hero-meta{font-size:12px}.table-wrap{border-radius:10px}}
+@media print{.contents,.topbar,button,.evidence{display:none}.layout{display:block}.frame{padding:0}.hero{padding:0 0 20px}.report-section{break-inside:avoid}body{background:white;color:black;font-size:11pt}.metric b{color:#006c65}}
+</style></head><body><header class="topbar"><a class="identity" href="#top"><span class="logo" aria-hidden="true">M</span>Medienwerk <span style="color:var(--muted);font-weight:400">/ Analyse</span></a><div class="top-actions"><span class="local-tag">Lokaler Arbeitsstand</span><a href="PLATFORM_ANALYSIS.md" download>Dokumentation ↓</a><button id="theme-toggle" type="button" aria-label="Lesemodus wechseln">Hell</button></div></header><div class="frame"><header class="hero" id="top"><div class="eyebrow">Bestandsaufnahme · 11. Oktober 2026</div><h1>Wie Medienwerk<br>aufgebaut ist.</h1><p class="lede">Mehrere echte Produktionswege unter einer gemeinsamen Oberfläche. Projekte, Einstellungen und Auftragszustände verbinden diese Wege bisher nur teilweise.</p><div class="hero-meta"><span>Basis: <code>1733f03</code> + lokale Anpassungen</span><span>Quellcodeanalyse mit konkreten Belegen</span><span>Keine neue KI-Produktion ausgelöst</span></div><div class="metrics"><div class="metric"><b>13</b><span>Seiten in der Oberfläche</span></div><div class="metric"><b>11</b><span>API-Routergruppen</span></div><div class="metric"><b>5</b><span>sichtbare Produktionswege</span></div><div class="metric"><b>2</b><span>zentrale Arbeitsthreads</span></div></div></header><div class="takeaways"><article class="takeaway"><small>Aufbau</small><h3>Next.js + FastAPI</h3><p>Der Browser bedient das Studio. Python verarbeitet Medien und bindet KI-Anbieter ein. FFmpeg und Whisper übernehmen lokale Arbeit.</p></article><article class="takeaway"><small>Code-Befund</small><h3>Oberfläche und Funktion trennen</h3><p>Dashboard-Daten, Social-Verbindungen und Teile des Editors sind Beispiele oder Platzhalter. Andere Abläufe sind tatsächlich implementiert.</p></article><article class="takeaway"><small>Einschätzung</small><h3>Die Verbindung zuerst stärken</h3><p>Ein gemeinsamer Projektbestand, ein eindeutiges Konfigurationsschema und klare Jobs erleichtern die anschließenden Anpassungen.</p></article></div><div class="layout"><aside class="contents"><details open><summary>Inhalt · 16 Kapitel</summary><nav aria-label="Inhaltsverzeichnis"><a href="#section-1"><span>01</span>Einordnung</a><a href="#section-2"><span>02</span>Technischer Aufbau</a><a href="#section-3"><span>03</span>Funktionsübersicht</a><a href="#section-4"><span>04</span>Was bei einem Auftrag geschieht</a><a href="#section-5"><span>05</span>Quick Creator: Aus einem Thema wird ein Video</a><a href="#section-6"><span>06</span>Magic Clipper: Aus vorhandenem Material werden Shorts</a><a href="#section-7"><span>07</span>Die übrigen Produktionswege</a><a href="#section-8"><span>08</span>Anbieter und Einstellungen</a><a href="#section-9"><span>09</span>Daten, Dateien und Historie</a><a href="#section-10"><span>10</span>Oberfläche, Design und Sprache</a><a href="#section-11"><span>11</span>Veröffentlichungen und Anmeldungen</a><a href="#section-12"><span>12</span>Grenzen beim Betrieb</a><a href="#section-13"><span>13</span>Die wichtigsten Befunde für die Weiterentwicklung</a><a href="#section-14"><span>14</span>Wo wir Anpassungen am sinnvollsten ansetzen</a><a href="#section-15"><span>15</span>Ausgangspunkt für unsere nächste Entscheidung</a><a href="#section-16"><span>16</span>Anhang: Schnittstellen im aktuellen Code</a></nav></details></aside><main><section id="section-1" class="report-section"><div class="section-heading"><span class="section-number">01</span><h2>Einordnung</h2></div><p>Medienwerk ist derzeit eine lokale Anwendung für eine Person, die mehrere Abläufe zur Videoerstellung unter einer gemeinsamen Oberfläche zusammenfasst. Es gibt echte Verarbeitung mit FFmpeg, lokale Transkription mit Whisper und Anbindungen an KI-Anbieter. Die einzelnen Abläufe teilen jedoch noch kein einheitliches Projektmodell. Einige sichtbare Funktionen sind Demonstrationen oder unvollständig angebunden.</p>
+<p>Die Oberfläche vermittelt ein zusammenhängendes „Studio“. Im Code bestehen mindestens fünf unterschiedliche Produktionswege: Quick Creator, Magic Clipper, Director Mode, Movie Explainer und VideoFX. Zusätzlich existiert ein separater Ansatz mit Agentenklassen und Studio-Endpunkten, für den die passende Bedienoberfläche weitgehend fehlt. Diese Unterschiede erklären viele der derzeitigen Inkonsistenzen.</p>
+<p><strong>Meine Einschätzung:</strong> Für die Weiterentwicklung ist eine brauchbare Grundlage vorhanden. Der größte Nutzen entsteht zunächst durch einheitliche Projekte, verlässliche Einstellungen und sichtbare Auftragszustände. Reines Umbenennen oder Umgestalten würde die funktionalen Lücken bestehen lassen.</p>
+<h3>Was die Aussagen belegen</h3>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>Kennzeichnung</th>
+<th>Bedeutung</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Lokal geprüft</td>
+<td>Im vorherigen Test tatsächlich ausgeführt: Seitenaufrufe, Build, Einstellungen speichern, WebSocket-Verbindung und 9:16-Konvertierung samt Download.</td>
+</tr>
+<tr>
+<td>Im Code umgesetzt</td>
+<td>Der Ablauf und die Aufrufe sind im Quellcode vorhanden. Das beweist keinen erfolgreichen vollständigen Lauf mit einem externen Anbieter.</td>
+</tr>
+<tr>
+<td>Code-Befund</td>
+<td>Ein Widerspruch, fehlender Aufruf oder Platzhalter ist anhand der Dateien nachvollziehbar.</td>
+</tr>
+<tr>
+<td>Einschätzung</td>
+<td>Eine Empfehlung für die Weiterentwicklung, die wir an deine Wünsche anpassen können.</td>
+</tr>
+</tbody>
+</table></div>
+<p>Es wurde für diese Analyse keine kostenpflichtige KI-Produktion, Veröffentlichung auf Social Media oder neue Kampagne ausgelöst. Insbesondere Modellverfügbarkeit, Qualität, Laufzeiten und Anbieterpreise sind durch diese Untersuchung nicht bestätigt. Die Bilder in der visuellen Ausgabe zeigen echte lokale Seiten; ihre Platzhalterwerte sind keine Messdaten.</p></section><section id="section-2" class="report-section"><div class="section-heading"><span class="section-number">02</span><h2>Technischer Aufbau</h2></div><div class="illustration" id="aufbau"><figure><svg class="diagram" viewBox="0 0 380 590" role="img" aria-labelledby="arch-title"><title id="arch-title">Zwei lokale Server: Browser, Next.js, FastAPI und Verarbeitung</title><defs><marker id="arch-arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M0 0 L10 5 L0 10 Z" fill="var(--accent)"/></marker></defs><g id="arch-browser"><title>Browser: Formulare · Vorschau · Protokoll</title><rect class="node normal" x="40" y="8" width="300" height="76" rx="14"/><text x="190.0" y="38" text-anchor="middle" class="node-title">Browser</text><text x="190.0" y="61" text-anchor="middle" class="node-sub">Formulare · Vorschau · Protokoll</text></g><g id="arch-http"><title>HTTP / WebSocket</title><path class="edge" d="M190 84 L190 120" marker-end="url(#arch-arrow)"/><text class="edge-label" x="203" y="107.0">HTTP / WebSocket</text></g><g id="arch-next"><title>Next.js · Port 3000: Oberfläche und API-Weiterleitung</title><rect class="node normal" x="40" y="125" width="300" height="76" rx="14"/><text x="190.0" y="155" text-anchor="middle" class="node-title">Next.js · Port 3000</text><text x="190.0" y="178" text-anchor="middle" class="node-sub">Oberfläche und API-Weiterleitung</text></g><g id="arch-proxy"><title>/api/…</title><path class="edge" d="M190 201 L190 237" marker-end="url(#arch-arrow)"/><text class="edge-label" x="203" y="224.0">/api/…</text></g><g id="arch-fastapi"><title>FastAPI · Port 8008: 11 Gruppen von API-Endpunkten</title><rect class="node normal" x="40" y="242" width="300" height="76" rx="14"/><text x="190.0" y="272" text-anchor="middle" class="node-title">FastAPI · Port 8008</text><text x="190.0" y="295" text-anchor="middle" class="node-sub">11 Gruppen von API-Endpunkten</text></g><g id="arch-submit"><title>Job-ID + Hintergrundauftrag</title><path class="edge" d="M190 318 L190 354" marker-end="url(#arch-arrow)"/><text class="edge-label" x="203" y="341.0">Job-ID + Hintergrundauftrag</text></g><g id="arch-worker"><title>Python-Verarbeitung: 2 Worker · KI-Anbieter · FFmpeg</title><rect class="node accent" x="40" y="359" width="300" height="76" rx="14"/><text x="190.0" y="389" text-anchor="middle" class="node-title">Python-Verarbeitung</text><text x="190.0" y="412" text-anchor="middle" class="node-sub">2 Worker · KI-Anbieter · FFmpeg</text></g><g id="arch-output"><title>Ergebnis als Dateipfad</title><path class="edge" d="M190 435 L190 471" marker-end="url(#arch-arrow)"/><text class="edge-label" x="203" y="458.0">Ergebnis als Dateipfad</text></g><g id="arch-file"><title>Lokale Dateien: Video · Ton · Text · Einstellungen</title><rect class="node normal" x="40" y="476" width="300" height="76" rx="14"/><text x="190.0" y="506" text-anchor="middle" class="node-title">Lokale Dateien</text><text x="190.0" y="529" text-anchor="middle" class="node-sub">Video · Ton · Text · Einstellungen</text></g></svg><figcaption>Aufbau aus dem lokalen Arbeitsstand</figcaption></figure><div class="figure-text"><div class="eyebrow">So funktioniert es</div><h3>Eine Oberfläche, zwei Server</h3><p>Du bedienst die Anwendung über Port 3000. Next.js reicht API-Aufrufe an Python weiter; dort beginnt die eigentliche Medienproduktion.</p><ul><li>Der Browser zeigt Eingaben und Ergebnisse.</li><li>FastAPI validiert Aufträge und liefert eine Job-ID.</li><li>Worker erzeugen Medien; WebSockets bringen Status zurück.</li><li>SQLite speichert bisher Social-Tokens, keine Projekte.</li></ul></div></div><div class="table-wrap"><table>
+<thead>
+<tr>
+<th>Ebene</th>
+<th>Umsetzung</th>
+<th>Aufgabe</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Oberfläche im Browser</td>
+<td>React 19.2.4, TypeScript, Next.js 16.4.0</td>
+<td>Eingaben, Navigation, Ergebnisanzeige und laufende Fortschrittsmeldungen.</td>
+</tr>
+<tr>
+<td>Gestaltung</td>
+<td>Tailwind CSS 4, Outfit-Schrift, Lucide-Icons</td>
+<td>Dunkle Oberfläche, transparente Karten, türkise Akzente.</td>
+</tr>
+<tr>
+<td>Lokaler Webserver</td>
+<td>Next.js auf Port 3000</td>
+<td>Liefert die Oberfläche; leitet <code>/api/...</code> zum Backend weiter.</td>
+</tr>
+<tr>
+<td>Backend</td>
+<td>FastAPI, Pydantic, Uvicorn auf Port 8008</td>
+<td>Nimmt Aufträge entgegen, liest Einstellungen, liefert Dateien und startet Verarbeitung.</td>
+</tr>
+<tr>
+<td>Hintergrundaufträge</td>
+<td>Python-Threadpool mit zwei Arbeitsthreads</td>
+<td>Längere Aufträge laufen außerhalb der eigentlichen API-Antwort.</td>
+</tr>
+<tr>
+<td>Live-Verbindung</td>
+<td>WebSockets</td>
+<td>Der Server sendet Status, Fortschritt, Protokolle und Ergebnisse an den Browser.</td>
+</tr>
+<tr>
+<td>Medienverarbeitung</td>
+<td>FFmpeg, ffmpeg-python, pydub, pysubs2, teilweise MoviePy</td>
+<td>Schnitt, Skalierung, Tonmischung, Untertitel und fertige Videodateien.</td>
+</tr>
+<tr>
+<td>Spracherkennung</td>
+<td>OpenAI Whisper auf dem lokalen Rechner</td>
+<td>Wandelt vorhandenes Audio in Text und Zeitmarken um.</td>
+</tr>
+<tr>
+<td>Dateispeicherung</td>
+<td>Lokales Dateisystem und JSON</td>
+<td>Einstellungen, Projektdateien, Kampagnen, Zwischenprodukte und Videos.</td>
+</tr>
+<tr>
+<td>Datenbank</td>
+<td>SQLite über SQLAlchemy</td>
+<td>Bisher nur die Tabelle für Social-OAuth-Tokens.</td>
+</tr>
+</tbody>
+</table></div>
+<p>Ein <strong>API-Endpunkt</strong> ist eine Adresse, über die die Oberfläche eine bestimmte Aktion beim Backend anfordert. Ein <strong>Job</strong> ist ein länger laufender Auftrag. Ein <strong>Worker</strong> ist der Hintergrundteil, der diesen Auftrag verarbeitet. Eine <strong>Pipeline</strong> ist eine festgelegte Folge von Arbeitsschritten. Ein <strong>Provider</strong> ist ein externer oder lokaler Anbieter für Text, Stimmen, Bilder oder Videos.</p>
+<p>Beim lokalen Start sind Next.js und FastAPI zwei getrennte Prozesse. <code>start-local.sh</code> startet beide und bindet sie an <code>127.0.0.1</code>. Die Oberfläche nutzt relative API-Adressen. Dadurch entscheidet der Webserver über das Ziel; der Browser muss die Backend-Adresse nicht selbst kennen. <code>websocketUrl()</code> verwendet den aktuellen Host und wählt abhängig von HTTP oder HTTPS die passende WebSocket-Verbindung.</p>
+<p class="sources">Quellen: <code>web/package.json:1</code>, <code>web/next.config.ts:1</code>, <code>start-local.sh:1</code>, <code>server/main.py:16</code>, <code>web/src/lib/api.ts:1</code>, <code>server/core/queue.py:11</code>.</p>
+<h3>Welche Dateien welche Verantwortung haben</h3>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>Bereich</th>
+<th>Zentrale Dateien</th>
+<th>Bedeutung für spätere Änderungen</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Seiten und Navigation</td>
+<td><code>web/src/app/</code>, <code>Sidebar.tsx</code>, <code>layout.tsx</code></td>
+<td>Hier ändern wir Menüs, Namen, Inhalte und Bedienabläufe.</td>
+</tr>
+<tr>
+<td>Design</td>
+<td><code>web/src/app/globals.css</code></td>
+<td>Zentrale Farben und gemeinsame Karten-, Formular- und Button-Stile. Viele Seiten haben zusätzliche direkte Farbwerte.</td>
+</tr>
+<tr>
+<td>Einstellungen im Browser</td>
+<td><code>web/src/context/ConfigContext.tsx</code></td>
+<td>Lädt die globale Konfiguration und speichert sie zurück.</td>
+</tr>
+<tr>
+<td>Start und API-Zuordnung</td>
+<td><code>server/main.py</code></td>
+<td>Bindet elf Routergruppen ein und startet den Scheduler.</td>
+</tr>
+<tr>
+<td>Einzelne API-Aktionen</td>
+<td><code>server/routers/</code></td>
+<td>Übersetzt Browser-Eingaben in Aufträge oder direkte Verarbeitung.</td>
+</tr>
+<tr>
+<td>Auftragszustände</td>
+<td><code>server/core/queue.py</code></td>
+<td>Job-IDs, Status, Worker, WebSockets und Abbruchsignale.</td>
+</tr>
+<tr>
+<td>Quick Creator</td>
+<td><code>pipeline.py</code></td>
+<td>Große Produktionspipeline mit 14 Schritten; rund 880 Zeilen.</td>
+</tr>
+<tr>
+<td>KI-Anbindungen</td>
+<td><code>api_clients.py</code></td>
+<td>Text-Routing, Gemini, WaveSpeed, Pixabay und NewsAPI; rund 850 Zeilen.</td>
+</tr>
+<tr>
+<td>Agentenansatz</td>
+<td><code>agents.py</code></td>
+<td>Feste Rollen für Schreiben, Szenen, Bilder, Videos und Montage.</td>
+</tr>
+<tr>
+<td>Bestehende Videos</td>
+<td><code>pipeline_shorts.py</code>, <code>director_engine.py</code>, <code>explainer_engine.py</code></td>
+<td>Drei unterschiedliche Arten der Bearbeitung von vorhandenem Material.</td>
+</tr>
+</tbody>
+</table></div>
+<p>Die API-Schicht ist bereits nach Funktionen getrennt. Die größte Kopplung liegt in den globalen Einstellungen, den gemeinsamen KI-Clients und den Dateipfaden. Die Bezeichnung „Agent“ steht hier für Python-Klassen mit festgelegten Arbeitsschritten und Prompts; die Ausführung wird durch den Code vorgegeben.</p></section><section id="section-3" class="report-section"><div class="section-heading"><span class="section-number">03</span><h2>Funktionsübersicht</h2></div><div class="screenshots"><figure><a href="dashboard.png" target="_blank"><img src="dashboard.png" alt="Echte lokale Dashboard-Seite mit Beispielkennzahlen" loading="lazy"></a><figcaption><strong>Dashboard</strong> · Die dargestellten Kennzahlen und Projekte sind fest im Code eingetragen.</figcaption></figure><figure><a href="brand.png" target="_blank"><img src="brand.png" alt="Echte Brand-Assets-Seite mit Coming-Soon-Hinweis" loading="lazy"></a><figcaption><strong>Brand Assets</strong> · Backend vorhanden, Bedienoberfläche noch ein Platzhalter.</figcaption></figure></div><p>Die Anwendung hat 13 Seitenrouten; die Seitenleiste verlinkt zwölf davon. Der zusätzliche Agentenbereich liegt unter <code>/studio/agent</code>.</p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>Bereich</th>
+<th>Tatsächliche Umsetzung</th>
+<th>Gegenwärtige Grenze</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Dashboard <code>/</code></td>
+<td>Navigation und gestaltete Übersicht.</td>
+<td>Kennzahlen und letzte Ergebnisse sind fest eingetragene Beispieldaten.</td>
+</tr>
+<tr>
+<td>Quick Creator <code>/studio</code></td>
+<td>Formular, API-Auftrag, 14-Schritte-Pipeline, Live-Protokolle.</td>
+<td>Gesamtlauf mit KI nicht bestätigt; Ergebnisse liegen außerhalb der von der Historie erwarteten Ordner.</td>
+</tr>
+<tr>
+<td>Magic Clipper <code>/clipper</code></td>
+<td>URL oder Upload → Transkript → Vorschläge → Auswahl → Schnitt und Untertitel.</td>
+<td>Englisch fest vorgegeben; Timeline teilweise Attrappe; Vorschlagsdaten nur begrenzt validiert.</td>
+</tr>
+<tr>
+<td>Director Mode <code>/director</code></td>
+<td>Download, Stille entfernen, Worterkennung, Zoom-/SFX-Regeln.</td>
+<td>Regelsystem mit englischen Schlüsselwörtern; Ergebnisse fehlen in der Historie.</td>
+</tr>
+<tr>
+<td>Movie Explainer <code>/explainer</code></td>
+<td>Bestehendes Video → Transkript → Erzählszenen → TTS → Montage.</td>
+<td>Wiederverwendung nach URL berücksichtigt geänderte Sprache oder Stimme nicht ausreichend.</td>
+</tr>
+<tr>
+<td>VideoFX Flow <code>/videofx</code></td>
+<td>Automatisiert einen sichtbaren Chrome-Browser mit Playwright.</td>
+<td>Benötigt lokale Google-Anmeldung; abhängig von Bedienelementen einer fremden Website.</td>
+</tr>
+<tr>
+<td>Auto-Pilot <code>/campaigns</code></td>
+<td>Kampagnen anlegen, pausieren, löschen; Scheduler vorhanden.</td>
+<td>Scheduler greift auf ein fehlendes <code>google_client</code>-Attribut zu.</td>
+</tr>
+<tr>
+<td>Brand Assets <code>/brand</code></td>
+<td>Sichtbare Seite ist „Coming Soon“. Backend kann Logo/Intro/Outro speichern.</td>
+<td>Upload-Bedienung fehlt; Branding wird nur in der Quick-Pipeline eingebaut.</td>
+</tr>
+<tr>
+<td>History <code>/history</code></td>
+<td>Durchsucht Ordner und bietet Wiedergabe, Downloads und Löschen.</td>
+<td>Erkennt nur bestimmte Ordner- und Dateinamen; kein zentrales Projektregister.</td>
+</tr>
+<tr>
+<td>Video Tools <code>/tools</code></td>
+<td>Untertitel, Formatumwandlung, Sprachfunktion.</td>
+<td>9:16-Konvertierung lokal geprüft; Sprachfunktion ruft eine fehlende Methode auf; 1:1 wird im Backend nicht separat behandelt.</td>
+</tr>
+<tr>
+<td>Publish <code>/publish</code></td>
+<td>Podcast-Bibliothek, Metadatenformular, echter YouTube-Uploadpfad.</td>
+<td>Desktop-OAuth separat von simulierten Social-Tokens; Plattformauswahl steuert keine vollständige Mehrfachveröffentlichung.</td>
+</tr>
+<tr>
+<td>Settings <code>/settings</code></td>
+<td>API-Schlüssel, Anbieter, Modelle und Untertiteloptionen speichern.</td>
+<td>Uneinheitliche Namen; einige Einstellungen werden nicht verwendet oder sind nicht bedienbar.</td>
+</tr>
+<tr>
+<td>AI Orchestrator <code>/studio/agent</code></td>
+<td>Sichtbarer Hinweis „Coming Soon in Pro Enterprise Edition“.</td>
+<td>Studio-API und Agentenklassen werden auf dieser Seite nicht angebunden.</td>
+</tr>
+</tbody>
+</table></div>
+<p class="sources">Quellen: <code>web/src/components/Sidebar.tsx:10</code>, <code>web/src/app/page.tsx:73</code>, <code>web/src/app/brand/page.tsx:1</code>, <code>web/src/app/studio/agent/page.tsx:1</code>, <code>server/main.py:40</code>.</p></section><section id="section-4" class="report-section"><div class="section-heading"><span class="section-number">04</span><h2>Was bei einem Auftrag geschieht</h2></div><p>Der typische Ablauf lautet: Eingabe im Browser → HTTP-Anfrage an <code>/api/...</code> → Validierung durch Pydantic → Job-ID erstellen → Hintergrundauftrag starten → Fortschritt über WebSocket senden → Ergebnis als Dateipfad zurückgeben → Datei über den Medien-Endpunkt abspielen oder herunterladen.</p>
+<p>Die API antwortet bei diesen Aufträgen schon mit einer Job-ID, bevor die Produktion fertig ist. Die Oberfläche muss anschließend den richtigen Job verfolgen. Der Job-Speicher <code>_JOBS</code> ist ein Python-Dictionary im Arbeitsspeicher. Bei einem Backend-Neustart gehen Jobzustände und Protokolle verloren, während bereits geschriebene Dateien bestehen bleiben. Es gibt keine dauerhafte Warteschlange mit Wiederaufnahme und keine automatische Bereinigung alter Job-Einträge.</p>
+<p>Zwei Arbeitsthreads können gleichzeitig Jobs verarbeiten. Das ist keine Garantie von nur zwei gleichzeitig laufenden Anbieteranfragen: Der Agentenansatz startet zusätzliche Pools mit fünf Threads, und <code>/api/studio/render</code> sowie VideoFX-Login verwenden eigene Threads außerhalb der zentralen Warteschlange.</p>
+<p>Es gibt drei Nachrichtenarten: <code>full_state</code> enthält den Zustand beim Verbinden, <code>update</code> enthält neue Zustandsfelder, <code>log</code> enthält Meldungen. Bei <code>log</code> existieren zwei verschiedene Formate: einmal <code>data</code>, einmal <code>message</code> und <code>progress</code>. Verschiedene Seiten erwarten unterschiedliche Varianten. Die reine WebSocket-Verbindung wurde geprüft; alle möglichen Meldungs- und Wiederverbindungsfälle wurden nicht ausgeführt.</p>
+<p class="sources">Quellen: <code>server/core/queue.py:13</code>, <code>server/core/queue.py:39</code>, <code>server/core/queue.py:119</code>, <code>server/core/queue.py:159</code>, <code>server/routers/studio.py:158</code>, <code>web/src/app/studio/page.tsx:182</code>, <code>web/src/app/explainer/page.tsx:45</code>.</p></section><section id="section-5" class="report-section"><div class="section-heading"><span class="section-number">05</span><h2>Quick Creator: Aus einem Thema wird ein Video</h2></div><div class="illustration" id="quick-ablauf"><figure><svg class="diagram" viewBox="0 0 380 510" role="img" aria-labelledby="quick-title"><title id="quick-title">Die vier Phasen des Quick Creators</title><defs><marker id="quick-arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M0 0 L10 5 L0 10 Z" fill="var(--accent)"/></marker></defs><g id="quick-phase-1"><title>1 · Inhalt entwickeln: Recherche → Review → Skript</title><rect class="node normal" x="30" y="12" width="320" height="76" rx="14"/><text x="190.0" y="42" text-anchor="middle" class="node-title">1 · Inhalt entwickeln</text><text x="190.0" y="65" text-anchor="middle" class="node-sub">Recherche → Review → Skript</text></g><g id="quick-edge-1"><title>Nächster Verarbeitungsschritt</title><path class="edge" d="M190 88 L190 128" marker-end="url(#quick-arrow)"/></g><g id="quick-phase-2"><title>2 · Medien erzeugen: Stimmen · Bilder · Videoclips</title><rect class="node normal" x="30" y="132" width="320" height="76" rx="14"/><text x="190.0" y="162" text-anchor="middle" class="node-title">2 · Medien erzeugen</text><text x="190.0" y="185" text-anchor="middle" class="node-sub">Stimmen · Bilder · Videoclips</text></g><g id="quick-edge-2"><title>Nächster Verarbeitungsschritt</title><path class="edge" d="M190 208 L190 248" marker-end="url(#quick-arrow)"/></g><g id="quick-phase-3"><title>3 · Video montieren: FFmpeg · Untertitel · Branding</title><rect class="node accent" x="30" y="252" width="320" height="76" rx="14"/><text x="190.0" y="282" text-anchor="middle" class="node-title">3 · Video montieren</text><text x="190.0" y="305" text-anchor="middle" class="node-sub">FFmpeg · Untertitel · Branding</text></g><g id="quick-edge-3"><title>Nächster Verarbeitungsschritt</title><path class="edge" d="M190 328 L190 368" marker-end="url(#quick-arrow)"/></g><g id="quick-phase-4"><title>4 · Ausgabe ergänzen: SEO · Kapitel · 60-Sekunden-Clips</title><rect class="node normal" x="30" y="372" width="320" height="76" rx="14"/><text x="190.0" y="402" text-anchor="middle" class="node-title">4 · Ausgabe ergänzen</text><text x="190.0" y="425" text-anchor="middle" class="node-sub">SEO · Kapitel · 60-Sekunden-Clips</text></g></svg><figcaption>14 Schritte, hier in vier Phasen zusammengefasst</figcaption></figure><div class="figure-text"><div class="eyebrow">So funktioniert es</div><h3>Quick Creator erzeugt neue Inhalte</h3><p>Das Thema wird zuerst in ein Skript übersetzt. Daraus entstehen die Medien für das fertige Video. Zahlreiche Schritte sind optional oder verwenden bereits vorhandene Dateien.</p><ul><li><strong>Code-Befund:</strong> Analyse des Tons ist ein leerer Schritt.</li><li><strong>Code-Befund:</strong> Dateiexistenz entscheidet über Wiederverwendung.</li><li><strong>Code-Befund:</strong> Der Ausgabeordner liegt außerhalb der normalen Historie.</li></ul></div></div><p>Der Browser sammelt Thema, Inhaltstyp, Stil, Stimme, Seitenverhältnis, Hintergrundmodus und Zusatzoptionen. <code>/api/generate/quick</code> erzeugt einen Job. Der Worker liest die globale Konfiguration, überschreibt einzelne Werte für diesen Auftrag und ruft <code>Pipeline.run()</code> auf.</p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>Schritt</th>
+<th>Was der Code tut</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1. Deep Research</td>
+<td>Recherchetext erzeugen, bei Gemini mit Google-Suche; optional NewsAPI-Kontext.</td>
+</tr>
+<tr>
+<td>2. Fact Check Research</td>
+<td>Ein weiteres KI-Review, wenn aktiviert. Keine unabhängige Garantie geprüfter Fakten.</td>
+</tr>
+<tr>
+<td>3. Revise Research</td>
+<td>Recherche anhand des Reviews überarbeiten.</td>
+</tr>
+<tr>
+<td>4. Podcast Script</td>
+<td>Skript abhängig von Inhaltstyp, Sprache, Stil und gewünschter Länge schreiben.</td>
+</tr>
+<tr>
+<td>5. Generate Thumbnail</td>
+<td>Optional zwei Bilder erzeugen und nebeneinander montieren.</td>
+</tr>
+<tr>
+<td>6. Analyze Tone</td>
+<td>Aktuell nur den Schritt als erledigt markieren; keine eigentliche Analyse.</td>
+</tr>
+<tr>
+<td>7. Audio (TTS)</td>
+<td>Skript vertonen; Gemini kann passend formatierten Podcasttext mit zwei Stimmen sprechen.</td>
+</tr>
+<tr>
+<td>8. Generate Timed Images</td>
+<td>Optional Bilder zu Zeitabschnitten erzeugen.</td>
+</tr>
+<tr>
+<td>9. Video Generation</td>
+<td>KI-Clips oder Pixabay-Material erzeugen beziehungsweise laden.</td>
+</tr>
+<tr>
+<td>10. Add Background Music</td>
+<td>Vorhandene lokale Musik mit Sprache mischen.</td>
+</tr>
+<tr>
+<td>11. Create Final Video</td>
+<td>Bild und Ton montieren, Untertitel einbrennen, optional Branding.</td>
+</tr>
+<tr>
+<td>12. Generate SEO Metadata</td>
+<td>Titel, Beschreibung und Tags erzeugen.</td>
+</tr>
+<tr>
+<td>13. Generate Timestamps</td>
+<td>KI-Kapitelüberschriften mit Wortzeitmarken verknüpfen.</td>
+</tr>
+<tr>
+<td>14. Generate Snippets</td>
+<td>Ganze 60-Sekunden-Abschnitte als zusätzliche Clips schneiden.</td>
+</tr>
+</tbody>
+</table></div>
+<p><strong>Wiederverwendung:</strong> Viele Schritte überspringen die Erzeugung, sobald die erwartete Datei existiert. Das kann Zeit und Anbieteraufrufe sparen. Es fehlt aber ein Vergleich, ob sich Eingaben oder Einstellungen seit der letzten Erzeugung geändert haben. Gleichnamige Themen verwenden denselben Ordner. So können neue Einstellungen auf alte Zwischenprodukte treffen.</p>
+<p><strong>Ergebnisort:</strong> <code>output_dir = safe_topic</code> legt den Themenordner direkt im Projektverzeichnis an. Das fertige Video heißt <code>final_podcast_video.mp4</code>. Historie und Publish suchen Podcasts dagegen unter <code>workspace/</code>. Dieser Unterschied ist eine konkrete Integrationslücke.</p>
+<p><strong>Fortschritt:</strong> Die Pipeline meldet Werte je Schritt, zum Beispiel <code>0.2</code> und <code>1.0</code>. Die API übernimmt sie direkt als Gesamtfortschritt und verwendet den Schrittindex nicht. Deshalb kann die Anzeige mehrfach 100 Prozent erreichen. Der Quick Creator wertet beim anfänglichen <code>full_state</code> außerdem nicht alle abschließenden Zustände aus; ein sehr früh abgeschlossener Job kann dadurch im Browser als laufend stehen bleiben.</p>
+<p><strong>Optionen:</strong> <code>OMNICHANNEL</code> wird gespeichert, aber in der Produktionspipeline nicht ausgewertet. <code>VISUAL_STYLE</code> wird vom Formular gesetzt, jedoch dort nicht als zentrale Vorgabe gelesen. Das Bildzählfeld aktiviert <code>GENERATE_TIMED_IMAGES</code> nicht automatisch. Ein gewählter Stil oder Schalter beweist deshalb noch keine entsprechende Verarbeitung.</p>
+<p class="sources">Quellen: <code>server/routers/generation.py:48</code>, <code>pipeline.py:251</code>, <code>pipeline.py:363</code>, <code>pipeline.py:380</code>, <code>pipeline.py:585</code>, <code>pipeline.py:780</code>, <code>server/routers/generation.py:82</code>, <code>web/src/app/studio/page.tsx:185</code>.</p><details class="evidence"><summary>Quellcode ansehen · Quick-Creator-Ausgabeordner</summary><p class="source-note">pipeline.py · Originalzeilen 251–263. Der Ausschnitt beginnt im Codefenster bei Zeile 1.</p><div id="snippet-0" class="code-surface" data-snippet="0"></div></details></section><section id="section-6" class="report-section"><div class="section-heading"><span class="section-number">06</span><h2>Magic Clipper: Aus vorhandenem Material werden Shorts</h2></div><div class="illustration" id="clipper-ablauf"><figure><svg class="diagram" viewBox="0 0 380 625" role="img" aria-labelledby="clip-title"><title id="clip-title">Clipper: Analyse, Auswahl und Rendering sind getrennte Phasen</title><defs><marker id="clip-arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M0 0 L10 5 L0 10 Z" fill="var(--accent)"/></marker></defs><g id="clip-phase-1"><title>Video laden: YouTube-URL oder lokale Datei</title><rect class="node normal" x="30" y="8" width="320" height="76" rx="14"/><text x="190.0" y="38" text-anchor="middle" class="node-title">Video laden</text><text x="190.0" y="61" text-anchor="middle" class="node-sub">YouTube-URL oder lokale Datei</text></g><g id="clip-edge-1"><title>Nächster Verarbeitungsschritt</title><path class="edge" d="M190 84 L190 124" marker-end="url(#clip-arrow)"/></g><g id="clip-phase-2"><title>Whisper + Textmodell: Transkript → Vorschläge</title><rect class="node normal" x="30" y="128" width="320" height="76" rx="14"/><text x="190.0" y="158" text-anchor="middle" class="node-title">Whisper + Textmodell</text><text x="190.0" y="181" text-anchor="middle" class="node-sub">Transkript → Vorschläge</text></g><g id="clip-edge-2"><title>Nächster Verarbeitungsschritt</title><path class="edge" d="M190 204 L190 244" marker-end="url(#clip-arrow)"/></g><g id="clip-phase-3"><title>Deine Auswahl: Clips prüfen und auswählen</title><rect class="node accent" x="30" y="248" width="320" height="76" rx="14"/><text x="190.0" y="278" text-anchor="middle" class="node-title">Deine Auswahl</text><text x="190.0" y="301" text-anchor="middle" class="node-sub">Clips prüfen und auswählen</text></g><g id="clip-edge-3"><title>Nächster Verarbeitungsschritt</title><path class="edge" d="M190 324 L190 364" marker-end="url(#clip-arrow)"/></g><g id="clip-phase-4"><title>Shorts rendern: Gesichtsausschnitt · Untertitel</title><rect class="node normal" x="30" y="368" width="320" height="76" rx="14"/><text x="190.0" y="398" text-anchor="middle" class="node-title">Shorts rendern</text><text x="190.0" y="421" text-anchor="middle" class="node-sub">Gesichtsausschnitt · Untertitel</text></g><g id="clip-edge-4"><title>Nächster Verarbeitungsschritt</title><path class="edge" d="M190 444 L190 484" marker-end="url(#clip-arrow)"/></g><g id="clip-phase-5"><title>Finale Clips: 720 × 1280 · Historie erkennt sie</title><rect class="node normal" x="30" y="488" width="320" height="76" rx="14"/><text x="190.0" y="518" text-anchor="middle" class="node-title">Finale Clips</text><text x="190.0" y="541" text-anchor="middle" class="node-sub">720 × 1280 · Historie erkennt sie</text></g></svg><figcaption>Zwei Aufträge mit einer gemeinsamen Job-ID</figcaption></figure><div class="figure-text"><div class="eyebrow">So funktioniert es</div><h3>Im Clipper entscheidet deine Auswahl</h3><p>Die erste Phase schlägt Ausschnitte vor. Die zweite Phase macht daraus fertig gerenderte Shorts. Die Auswahl liegt zwischen beiden Verarbeitungsschritten.</p><ul><li>Lokale Transkription, KI-Vorschläge und FFmpeg-Montage sind im Code vorhanden.</li><li>Die Gesichtsverfolgung wählt das größte Gesicht, ohne Sprecher anhand des Tons zu erkennen.</li><li>Die Timeline besitzt noch keine funktionierenden Schnittgriffe.</li></ul></div></div><p>Der Clipper hat zwei Phasen. Zunächst wird eine YouTube-URL heruntergeladen oder eine lokale Datei gespeichert. Whisper liefert Wörter mit Zeitmarken. Der Code bündelt sie ungefähr alle zehn Sekunden. Ein Textmodell bekommt die ersten 15.000 Zeichen dieses Transkripts und soll interessante Ausschnitte mit Start, Ende, Titel, Begründung, Scores und SEO-Daten vorschlagen.</p>
+<p>Die Oberfläche zeigt die Vorschläge zur Auswahl. Erst ein zweiter Aufruf an <code>/api/clipper/render</code> verarbeitet die ausgewählten Ausschnitte. Derselbe Job wird dabei weiterverwendet. Die ursprüngliche Analyse ist bei Fortschritt <code>0.6</code> im Zustand „Auswahl“, also noch kein fertiges Video.</p>
+<p>Beim Rendern wird mit OpenCV ungefähr zweimal pro Sekunde nach Gesichtern gesucht. Der Bildausschnitt richtet sich am größten erkannten Gesicht aus. Bei größeren Positionsänderungen entstehen neue Zuschnitte. Anschließend wird auf 720 × 1280 skaliert, optional Pixabay-Material eingeblendet, lokale Musik gemischt und eine neue Transkription für eingebrannte Untertitel erstellt.</p>
+<p>Die Bezeichnung „Active Speaker Tracking“ ist weitergehend als diese Umsetzung: Der Code erkennt Gesichter und wählt das größte Gesicht; er erkennt nicht anhand des Audios, welche Person tatsächlich spricht. Auch die „Virality“-Scores sind vom Textmodell vorgeschlagene Zahlen, keine beobachteten Leistungsdaten.</p>
+<p>Die Analyse und Untertitel sind auf „English“ festgelegt. Spätere Teile eines langen Videos gelangen nach der Begrenzung des Transkripts unter Umständen gar nicht in die KI-Auswahl. Start und Ende kommen aus einem JSON-Vorschlag; es fehlt eine durchgängige Prüfung gegen Videolänge und zulässige Clipdauer.</p>
+<p>Der Timeline-Editor zeigt eine simulierte Vorschau und dekorative Spuren. Die Zustände für Start- und Endgriffe sind vorhanden, werden aber durch keine Bedienung verändert. „Save Cuts“ liefert deshalb die vorhandenen Zeitwerte zurück. Für einen echten Editor brauchen wir eine Videoverbindung, bedienbare Zeitgrenzen und eine verlässliche Vorschau.</p>
+<p class="sources">Quellen: <code>pipeline_shorts.py:32</code>, <code>pipeline_shorts.py:112</code>, <code>pipeline_shorts.py:160</code>, <code>pipeline_shorts.py:204</code>, <code>server/routers/clipper.py:91</code>, <code>web/src/components/TimelineEditor.tsx:14</code>.</p></section><section id="section-7" class="report-section"><div class="section-heading"><span class="section-number">07</span><h2>Die übrigen Produktionswege</h2></div><h3>Director Mode</h3>
+<p>Dieser Modus bearbeitet ein vorhandenes Video. Er lädt es herunter, sucht stille Stellen mit pydub und schneidet sie heraus. Für zusätzliche Effekte transkribiert Whisper den Ton. Eine feste englische Wortliste wie „money“, „secret“ und „viral“ löst geplante Zoomstellen und Soundeffekte aus. Das ist ein regelbasierter Schnittablauf. Ein frei bedienbarer Mehrspur-Editor ist auf dieser Seite nicht vorhanden.</p>
+<p>Soundeffekte benötigen <code>assets/sfx/swoosh.wav</code>. Ohne diese Datei entfällt der Effekt. Das Ergebnis liegt unter <code>workspace/director_&lt;job-id&gt;/final_master.mp4</code>; die Historie sucht diesen Dateinamen nicht. Auch das als Punch-in bezeichnete Filterverhalten sollte separat mit Testmaterial geprüft werden, bevor wir seine Bildwirkung als fertig betrachten.</p>
+<p class="sources">Quellen: <code>server/core/director_engine.py:10</code>.</p>
+<h3>Movie Explainer</h3>
+<p>Ein vorhandenes Video wird geladen, sein Ton extrahiert und lokal mit Whisper <code>tiny</code> transkribiert. Ein Textmodell formuliert daraus eine Liste von Erzählszenen mit Originalzeitmarken. Jede Szene bekommt neue Sprache und Untertitel; entsprechende Ausschnitte des Originalvideos werden montiert. Die gewünschte Gesamtdauer ist eine Prompt-Vorgabe, keine exakt berechnete Zielzeit.</p>
+<p>Der Ausgabeordner wird aus einem Hash der Quell-URL beziehungsweise des Pfads gebildet. Dateien werden erneut verwendet, wenn sie vorhanden sind. Sprache, Stimme, Modell und Zieldauer sind nicht Teil dieses Schlüssels. Eine Änderung dieser Optionen kann deshalb alte Skripte oder Szenen wiederverwenden. Beim Schnitt wird die TTS-Dauer verwendet; die berechnete Original-Szenendauer bestimmt den Schnitt nicht direkt.</p>
+<p>Das Ergebnis liegt unter <code>outputs/explainer_&lt;hash&gt;/final_explainer.mp4</code>. Das Backend nimmt es in die Historie auf, während die Oberfläche nur die Typen Podcast und Clipper kennt und andere Typen entsprechend falsch beschriftet.</p>
+<p class="sources">Quellen: <code>server/core/explainer_engine.py:13</code>, <code>server/core/explainer_engine.py:103</code>, <code>server/core/explainer_engine.py:140</code>, <code>server/routers/generation.py:192</code>, <code>web/src/app/history/page.tsx:15</code>.</p>
+<h3>VideoFX Flow</h3>
+<p>Hier wird eine fremde Website über Playwright bedient. Ein sichtbarer Chrome-Browser öffnet Google VideoFX, verwendet ein gespeichertes Browserprofil, trägt den Prompt ein und wartet auf ein Video oder einen Download. Browserbilder können als Base64 über WebSocket zur Oberfläche übertragen werden.</p>
+<p>Das ist eine Browserautomatisierung und verwendet keine eigene stabile VideoFX-API. Sie hängt von Chrome, der lokalen Anmeldung und passenden Selektoren der Website ab. Die Login-API meldet den Start des Hintergrundthreads; daraus lässt sich noch kein erfolgreicher Login ableiten. Ergebnisse landen unter <code>videofx_outputs/</code> und werden von der Historie nicht erfasst.</p>
+<p class="sources">Quellen: <code>server/core/videofx_client.py:14</code>, <code>server/core/videofx_client.py:38</code>, <code>server/routers/videofx.py:15</code>.</p>
+<h3>Auto-Pilot und Kampagnen</h3>
+<p>Kampagnen werden in <code>campaigns.json</code> gespeichert. Beim Backend-Start beginnt ein Hintergrundthread, der alle 60 Sekunden prüft, welche aktive Kampagne fällig ist. Eine neu angelegte Kampagne ist sofort fällig. Der Scheduler soll einen Titel erzeugen und denselben Quick-Creator-Worker mit passenden Vorgaben starten.</p>
+<p>Dieser Ablauf enthält einen klaren Fehler: <code>trend.google_client</code> wird verwendet, aber <code>TrendAgent</code> oder dessen Basisklasse legen dieses Attribut nicht an. Der Fehler wird abgefangen und die nächste Ausführung um fünf Minuten verschoben. Außerdem ruft die Trendfunktion <code>NewsApiClient.get_top_headlines()</code> auf, obwohl dieser Client nur <code>get_news()</code> anbietet. Der separate Endpunkt für Trendthemen verwendet zusätzlich eine undefinierte Variable <code>job_id</code>.</p>
+<p>Es gibt keine anschließende automatische Veröffentlichung im Scheduler. „Kampagne“ bedeutet hier zunächst geplante Produktion. Mehrere Backend-Prozesse könnten dieselbe Kampagne mehrfach auslösen, weil weder dauerhafte Sperren noch ein verteilter Scheduler vorhanden sind.</p>
+<p class="sources">Quellen: <code>server/core/scheduler.py:35</code>, <code>server/core/scheduler.py:65</code>, <code>server/core/scheduler.py:89</code>, <code>agents.py:27</code>, <code>api_clients.py:145</code>, <code>server/routers/generation.py:117</code>.</p>
+<h3>Studio-API und Agentenklassen</h3>
+<p>Die Studio-API hat Endpunkte für Chat, Skript, Storyboard und Rendering. Der Chat erkennt das Textsignal <code>FINAL_SCRIPT_READY:</code>. Die Agentenklassen können Recherche, Dialogskript, Szenenprompts, Bilder, Videos und Montage abarbeiten. Es gibt Fallbacks, etwa schwarze Ersatzbilder oder Standbildvideos, wenn Anbieteraufrufe scheitern.</p>
+<p>Die aktuelle Agentenseite ruft diese Endpunkte nicht auf. Der Storyboard-Endpunkt liefert einen Dateipfad zurück, weil er <code>generate_storyboard()</code> verwendet; das spätere Render-Schema erwartet dagegen eine Liste von Szenen. Das Studio-Rendering läuft in einem eigenen Thread ohne zentrale Job-ID und schreibt <code>final_production.mp4</code>, das die Historie ebenfalls nicht erkennt. Diese Teile sollten zuerst zu einem durchgängigen Ablauf verbunden werden.</p>
+<p class="sources">Quellen: <code>server/routers/studio.py:41</code>, <code>server/routers/studio.py:107</code>, <code>server/routers/studio.py:158</code>, <code>agents.py:137</code>, <code>agents.py:172</code>, <code>agents.py:257</code>, <code>web/src/app/studio/agent/page.tsx:1</code>.</p><details class="evidence"><summary>Quellcode ansehen · Kampagne greift auf google_client zu</summary><p class="source-note">server/core/scheduler.py · Originalzeilen 82–90. Der Ausschnitt beginnt im Codefenster bei Zeile 1.</p><div id="snippet-1" class="code-surface" data-snippet="1"></div></details></section><section id="section-8" class="report-section"><div class="section-heading"><span class="section-number">08</span><h2>Anbieter und Einstellungen</h2></div><div class="table-wrap"><table>
+<thead>
+<tr>
+<th>Aufgabe</th>
+<th>Im Code vorhandene Wege</th>
+<th>Einschränkung</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Text</td>
+<td>Gemini, WaveSpeed, lokales Ollama</td>
+<td>WaveSpeed-Text liest einen anderen Schlüsselnamen als die Oberfläche speichert.</td>
+</tr>
+<tr>
+<td>Recherche</td>
+<td>Gemini mit Google-Suche, optional NewsAPI</td>
+<td>Serper-Schlüssel wird in der Oberfläche angeboten, hat aber keinen entsprechenden Verarbeitungsweg.</td>
+</tr>
+<tr>
+<td>Stimmen</td>
+<td>Gemini-TTS, WaveSpeed</td>
+<td>Video-Tools-TTS ruft <code>generate_speech()</code> auf; vorhanden ist <code>text_to_speech()</code>.</td>
+</tr>
+<tr>
+<td>Bilder</td>
+<td>Gemini, WaveSpeed, zusätzliche Vertex-Methode</td>
+<td>Nicht alle Wege sind mit Formularen verbunden; Agenten lesen teils falsche Schlüssel.</td>
+</tr>
+<tr>
+<td>Neue Videoclips</td>
+<td>WaveSpeed, Vertex-Zweig</td>
+<td>Anbieter- und Modellaufrufe sind vorhanden, aber nicht praktisch bestätigt.</td>
+</tr>
+<tr>
+<td>Stockmaterial</td>
+<td>Pixabay</td>
+<td>Benötigt Schlüssel; wird je nach Produktionsweg unterschiedlich verwendet.</td>
+</tr>
+<tr>
+<td>Transkription</td>
+<td>Whisper <code>base</code> oder <code>tiny</code></td>
+<td>Lokal; Modelle, Sprache und Verhalten unterscheiden sich zwischen den Modulen.</td>
+</tr>
+<tr>
+<td>Google VideoFX</td>
+<td>Lokale Chrome-Automatisierung</td>
+<td>Eigenständiger Weg mit Browserprofil und Anmeldung.</td>
+</tr>
+</tbody>
+</table></div>
+<p><code>GoogleClient</code> ist trotz seines Namens auch der Router für andere Textanbieter. Das erschwert das Verständnis: Eine neue Textfunktion muss aktuell über eine Klasse mit Google-Namen gehen, selbst wenn sie Ollama verwendet. Modellnamen für einige Google-Wege sind Konstanten in <code>api_clients.py</code>; die WaveSpeed-Modelle sind teilweise über Einstellungen veränderbar.</p>
+<p>Alle Einstellungen befinden sich in einer globalen <code>config.json</code>. Die Oberfläche lädt diese gesamte Konfiguration und sendet beim Speichern das gesamte Objekt zurück. Es gibt keine persönlichen Einstellungen pro Benutzer und keinen Konfigurationsbereich pro Projekt. Einige APIs lesen die Konfiguration zu Beginn, andere Produktionsphasen lesen sie später erneut. Änderungen während laufender Aufträge können so unterschiedlich wirken.</p>
+<p>Sichtbare Lücken sind <code>WAVESPEED_API_KEY</code> gegenüber <code>WAVESPEED_AI_KEY</code>, <code>FACT_CHECK</code> gegenüber <code>FACT_CHECK_ENABLED</code> beim Initialisieren des Formulars und unterschiedliche Darstellungen des Seitenverhältnisses. Ollama-Adresse und Modell sind im Backend vorgesehen, haben auf der aktuellen Settings-Seite aber keine eigenen Eingabefelder. „Ollama auswählen“ macht die komplette Medienproduktion noch nicht lokal: Stimmen, Bilder oder Videos können weiterhin andere Anbieter benötigen.</p>
+<p class="sources">Quellen: <code>config.py:24</code>, <code>web/src/context/ConfigContext.tsx:14</code>, <code>web/src/app/settings/page.tsx:45</code>, <code>api_clients.py:171</code>, <code>api_clients.py:206</code>, <code>agents.py:175</code>, <code>server/routers/tools.py:92</code>.</p><details class="evidence"><summary>Quellcode ansehen · Gespeicherter WaveSpeed-Schlüssel</summary><p class="source-note">web/src/app/settings/page.tsx · Originalzeilen 42–46. Der Ausschnitt beginnt im Codefenster bei Zeile 1.</p><div id="snippet-2" class="code-surface" data-snippet="2"></div></details><details class="evidence"><summary>Quellcode ansehen · Gelesener WaveSpeed-Schlüssel</summary><p class="source-note">api_clients.py · Originalzeilen 203–209. Der Ausschnitt beginnt im Codefenster bei Zeile 1.</p><div id="snippet-3" class="code-surface" data-snippet="3"></div></details><details class="evidence"><summary>Quellcode ansehen · Aufruf der fehlenden Sprachmethode</summary><p class="source-note">server/routers/tools.py · Originalzeilen 92–103. Der Ausschnitt beginnt im Codefenster bei Zeile 1.</p><div id="snippet-4" class="code-surface" data-snippet="4"></div></details></section><section id="section-9" class="report-section"><div class="section-heading"><span class="section-number">09</span><h2>Daten, Dateien und Historie</h2></div><div class="illustration" id="speicher"><figure><svg class="diagram" viewBox="0 0 380 470" role="img" aria-labelledby="storage-title"><title id="storage-title">Die Historie erkennt nicht alle fertigen Produktionen</title><defs><marker id="storage-arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M0 0 L10 5 L0 10 Z" fill="var(--accent)"/></marker></defs><g id="storage-producers"><title>Verschiedene Produktionswege: Jeder verwendet eigene Ordner</title><rect class="node normal" x="30" y="12" width="320" height="76" rx="14"/><text x="190.0" y="42" text-anchor="middle" class="node-title">Verschiedene Produktionswege</text><text x="190.0" y="65" text-anchor="middle" class="node-sub">Jeder verwendet eigene Ordner</text></g><g id="storage-output"><title>Nächster Verarbeitungsschritt</title><path class="edge" d="M190 88 L190 122" marker-end="url(#storage-arrow)"/></g><g id="storage-folder"><title>Endvideos als Dateien: Kein gemeinsames Projektregister</title><rect class="node normal" x="30" y="127" width="320" height="76" rx="14"/><text x="190.0" y="157" text-anchor="middle" class="node-title">Endvideos als Dateien</text><text x="190.0" y="180" text-anchor="middle" class="node-sub">Kein gemeinsames Projektregister</text></g><g id="storage-scan"><title>Ordner + feste Dateinamen</title><path class="edge" d="M190 203 L190 242" marker-end="url(#storage-arrow)"/><text class="edge-label" x="203" y="227.5">Ordner + feste Dateinamen</text></g><g id="storage-history"><title>Historie findet einen Teil: Clipper + Explainer + Workspace-Podcasts</title><rect class="node accent" x="30" y="247" width="320" height="76" rx="14"/><text x="190.0" y="277" text-anchor="middle" class="node-title">Historie findet einen Teil</text><text x="190.0" y="300" text-anchor="middle" class="node-sub">Clipper + Explainer + Workspace-Podcasts</text></g><g id="storage-missing"><title>Andere Ergebnisse fehlen: Quick · Director · VideoFX · Agenten</title><rect class="node warning" x="30" y="355" width="320" height="76" rx="14"/><text x="190.0" y="385" text-anchor="middle" class="node-title">Andere Ergebnisse fehlen</text><text x="190.0" y="408" text-anchor="middle" class="node-sub">Quick · Director · VideoFX · Agenten</text></g></svg><figcaption>Warum Ergebnis und Historie auseinanderlaufen</figcaption></figure><div class="figure-text"><div class="eyebrow">So funktioniert es</div><h3>Ein Video ist noch kein registriertes Projekt</h3><p>Die Anwendung schreibt Ergebnisse in mehrere Verzeichnisstrukturen. Historie und Publish suchen anschließend nach ausgewählten Namen. Es fehlt eine gemeinsame Quelle für den Produktionsbestand.</p><ul><li>Ein fertig gerendertes Video kann auf der Produktionsseite vorhanden sein und in History fehlen.</li><li>Dashboard, History und Publish beziehen ihre Informationen aus unterschiedlichen Quellen.</li><li><strong>Einschätzung:</strong> Ein lokales Projektregister könnte diese Verbindung herstellen.</li></ul></div></div><div class="table-wrap"><table>
+<thead>
+<tr>
+<th>Speicher</th>
+<th>Was dort liegt</th>
+<th>Was bei Neustart oder Änderung passiert</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>config.json</code></td>
+<td>Globale Einstellungen und API-Schlüssel.</td>
+<td>Bleibt erhalten; unverschlüsselt; von Git ignoriert.</td>
+</tr>
+<tr>
+<td><code>campaigns.json</code></td>
+<td>Kampagnen, Aktivierung und nächste Ausführung.</td>
+<td>Bleibt erhalten; derzeit nicht ausdrücklich von Git ausgeschlossen.</td>
+</tr>
+<tr>
+<td><code>workspace/app.db</code></td>
+<td>Social-Token-Tabelle.</td>
+<td>Bleibt erhalten; keine Tabelle für Projekte oder Jobs.</td>
+</tr>
+<tr>
+<td><code>_JOBS</code> im RAM</td>
+<td>Laufende/abgeschlossene Aufträge und Logs.</td>
+<td>Geht beim Backend-Neustart verloren.</td>
+</tr>
+<tr>
+<td><code>&lt;Thema&gt;/</code> im Projektordner</td>
+<td>Quick-Creator-Zwischenprodukte und Endvideo.</td>
+<td>Wiederverwendung nach Dateiexistenz; nicht in der normalen Historie gefunden.</td>
+</tr>
+<tr>
+<td><code>workspace/clipper_&lt;id&gt;/</code></td>
+<td>Quelle, Clips, Untertitel, finale Shorts.</td>
+<td>Finale <code>Final_*.mp4</code> werden von der Historie erkannt.</td>
+</tr>
+<tr>
+<td><code>workspace/director_&lt;id&gt;/</code></td>
+<td>Schnitt-Zwischenprodukte und <code>final_master.mp4</code>.</td>
+<td>Finale Datei wird von der Historie nicht erkannt.</td>
+</tr>
+<tr>
+<td><code>outputs/explainer_&lt;hash&gt;/</code></td>
+<td>Transkript, Skript, Szenen und Endvideo.</td>
+<td>Backend erkennt den Explainer; Cache berücksichtigt geänderte Optionen nicht ausreichend.</td>
+</tr>
+<tr>
+<td><code>videofx_outputs/</code>, <code>agent_workspace/</code></td>
+<td>VideoFX- oder Agentenergebnisse.</td>
+<td>Werden von der aktuellen Historie nicht durchsucht.</td>
+</tr>
+<tr>
+<td><code>assets/</code>, Browserprofil, OAuth-Dateien</td>
+<td>Markenmedien und Anmeldedaten.</td>
+<td>Unterschiedliche Speicherorte und unterschiedliche Ausschlüsse in Git.</td>
+</tr>
+</tbody>
+</table></div>
+<p>Die Historie ist keine Datenbankabfrage über alle Produktionen. Sie durchsucht Verzeichnisse, erkennt wenige feste Dateinamen und leitet Typen aus Ordnernamen ab. Die Publish-Bibliothek hat zusätzlich eine eigene, engere Suchlogik für Podcastdateien. Deshalb können zwei Seiten unterschiedliche Ergebnisse anzeigen.</p>
+<p><strong>Ansatzpunkt:</strong> Ein Projekt sollte eine eindeutige ID, einen Typ, einen Titel, die verwendeten Einstellungen, Quellmedien, Ausgabe-Dateien und zugehörige Jobs haben. Ein Dateipfad wäre dann eine Eigenschaft dieses Projekts. Historie, Dashboard und Publish könnten denselben Bestand anzeigen.</p>
+<p class="sources">Quellen: <code>server/core/database.py:5</code>, <code>server/routers/generation.py:147</code>, <code>server/routers/publish.py:18</code>, <code>pipeline.py:257</code>, <code>agents.py:294</code>, <code>.gitignore:23</code>.</p><details class="evidence"><summary>Quellcode ansehen · Suchlogik der Historie</summary><p class="source-note">server/routers/generation.py · Originalzeilen 147–176. Der Ausschnitt beginnt im Codefenster bei Zeile 1.</p><div id="snippet-5" class="code-surface" data-snippet="5"></div></details></section><section id="section-10" class="report-section"><div class="section-heading"><span class="section-number">10</span><h2>Oberfläche, Design und Sprache</h2></div><p>Die gemeinsame Gestaltung verwendet <code>--bg-main</code>, <code>--bg-glass</code>, <code>--border-glass</code> und <code>--accent</code>. Die Karten und Formulare sind teilweise als gemeinsame CSS-Klassen gestaltet. Zusätzliche Farben und Komponenten werden direkt in den einzelnen Seiten definiert. Eine zentrale Farbänderung wirkt deshalb nicht überall vollständig.</p>
+<p>Das Layout enthält eine feste Seitenleiste mit etwa 256 Pixeln Breite und einen separat scrollenden Inhaltsbereich. Es ist auf einen Desktop-Arbeitsplatz ausgerichtet; eine eigene mobile Navigation fehlt. Die meisten Texte stehen direkt auf Englisch im JSX, und die HTML-Sprache ist <code>en</code>. Es gibt keine zentrale Übersetzungsdatei. Oberfläche übersetzen und erzeugte Inhalte auf Deutsch konfigurieren sind zwei unterschiedliche Aufgaben.</p>
+<p>Die Seitenleiste zeigt „API Connected“ immer an, ohne den Backend-Zustand abzufragen. Das Dashboard hat echte Navigationslinks, aber feste Zahlen und feste Beispielprojekte. Schaltflächen wie „View All“ sind dort nicht mit einer Aktion verbunden. Für eine verlässliche Oberfläche sollten Status und Kennzahlen aus echten Daten kommen oder als Beispiele erkennbar sein.</p>
+<p>Der lokale Start hat fehlende Icons und den Clipper-Typfehler beseitigt. Das bedeutet, dass die Seiten gebaut werden können; es bestätigt nicht automatisch die Verarbeitung hinter jeder Option.</p>
+<p class="sources">Quellen: <code>web/src/app/globals.css:1</code>, <code>web/src/app/layout.tsx:24</code>, <code>web/src/components/Sidebar.tsx:29</code>, <code>web/src/components/Sidebar.tsx:66</code>, <code>web/src/app/page.tsx:73</code>.</p></section><section id="section-11" class="report-section"><div class="section-heading"><span class="section-number">11</span><h2>Veröffentlichungen und Anmeldungen</h2></div><p>Es existieren zwei verschiedene YouTube-Wege. <code>/api/publish/youtube</code> enthält einen echten Upload über die Google-Clientbibliothek. Dafür werden <code>client_secrets.json</code> und gegebenenfalls <code>token.pickle</code> gebraucht. Der OAuth-Ablauf öffnet einen Browser auf dem lokalen Rechner und verwendet Port 8080. Er ist auf einen Desktopbetrieb zugeschnitten.</p>
+<p>Die Endpunkte unter <code>/api/social</code> simulieren dagegen Teile der Verbindung. Der YouTube-Callback speichert erfundene Tokenwerte; der dortige Publish-Endpunkt liefert eine feste Beispiel-ID. TikTok und Instagram liefern Beispiel-Weiterleitungsadressen. Diese Token-Tabelle wird nicht vom echten YouTube-Upload verwendet. Die beiden Systeme teilen deshalb keinen tatsächlichen Anmeldezustand.</p>
+<p>Die Publish-Oberfläche besitzt eine Plattformauswahl, sendet bei der Veröffentlichung jedoch an den YouTube-Endpunkt. Ein produktiver TikTok- oder Instagram-Upload ist in diesem Stand nicht umgesetzt. Im Scheduler gibt es keinen Aufruf zur Veröffentlichung fertiger Videos.</p>
+<p class="sources">Quellen: <code>server/routers/publish.py:82</code>, <code>server/routers/social.py:28</code>, <code>server/routers/social.py:34</code>, <code>server/routers/social.py:59</code>, <code>web/src/app/publish/page.tsx:41</code>, <code>server/core/scheduler.py:125</code>.</p></section><section id="section-12" class="report-section"><div class="section-heading"><span class="section-number">12</span><h2>Grenzen beim Betrieb</h2></div><p>Der aktuelle lokale Betrieb passt zum vorhandenen Vertrauensmodell: Die Anwendung setzt voraus, dass die bedienende Person auch auf den Rechner zugreifen darf. Es gibt keine Anmeldung an Medienwerk, keine Rollen, keine Nutzertrennung und keine Prüfung, wem ein Job oder eine Datei gehört.</p>
+<p>Der Medien-Endpunkt liefert einen übergebenen Dateipfad aus, sofern die Datei existiert. Er beschränkt sich nicht auf Projektmedien. Uploads und mehrere lokale Dateipfad-Eingaben haben ebenfalls keine gemeinsame Prüfung eines erlaubten Speicherbereichs. Vor einem späteren öffentlichen Betrieb müssten Zugriffsschutz und Dateigrenzen ausdrücklich umgesetzt werden. Eine eingeschränkte CORS-Liste ersetzt keine Anmeldung.</p>
+<p>API-Schlüssel und Social-Tokens liegen lokal im Klartext. Die globale Konfiguration wird vollständig an den Browser übertragen. Das ist für die eigene lokale Sitzung nachvollziehbar, aber kein geeignetes Mehrbenutzermodell. Fehlermeldungen und Anbieterantworten können ebenfalls Details enthalten, die bei öffentlichem Betrieb nicht jedem Besucher angezeigt werden sollten.</p>
+<p>Abbruch ist ein weiteres Thema: Die Quick-Pipeline prüft ein Stoppsignal zwischen Schritten. Nicht jede Pipeline liest das Signal, und ein laufender FFmpeg-Prozess oder Anbieteraufruf wird damit nicht durchgehend sofort beendet. <code>stop_job()</code> setzt zudem den Zustand vor dem Update auf „cancelled“, sodass die Zustandsänderung dort unter Umständen nicht mehr ausgesendet wird.</p>
+<p>Python-Abhängigkeiten sind weitgehend ohne Versionsbindung eingetragen. Für den untersuchten lokalen Lauf wurden sie installiert; ein neuer Installationszeitpunkt kann andere Versionen auflösen. Das Google-SDK meldete beim lokalen Start eine Deprecation-Warnung. Automatisierte Projekttests und eine CI-Konfiguration sind im untersuchten Repositorybestand nicht vorhanden. Die vorangegangenen Prüfungen waren direkte lokale Tests.</p>
+<p class="sources">Quellen: <code>server/routers/generation.py:240</code>, <code>server/routers/clipper.py:56</code>, <code>server/main.py:29</code>, <code>config.py:94</code>, <code>server/core/queue.py:173</code>, <code>pipeline.py:221</code>, <code>requirements.txt:1</code>, <code>api_clients.py:17</code>.</p><details class="evidence"><summary>Quellcode ansehen · Abbruch und Statusänderung</summary><p class="source-note">server/core/queue.py · Originalzeilen 173–177. Der Ausschnitt beginnt im Codefenster bei Zeile 1.</p><div id="snippet-6" class="code-surface" data-snippet="6"></div></details></section><section id="section-13" class="report-section"><div class="section-heading"><span class="section-number">13</span><h2>Die wichtigsten Befunde für die Weiterentwicklung</h2></div><div class="table-wrap"><table>
+<thead>
+<tr>
+<th>ID</th>
+<th>Auswirkung</th>
+<th>Befund</th>
+<th>Ansatzpunkt</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>F01</td>
+<td>Ergebnisse fehlen</td>
+<td>Quick Creator, Director, VideoFX und Agenten passen nicht zur Historie.</td>
+<td>Gemeinsames Projekt- und Ausgabemodell.</td>
+</tr>
+<tr>
+<td>F02</td>
+<td>Anbieter funktioniert trotz Schlüssel nicht</td>
+<td>Unterschiedliche WaveSpeed-Schlüsselnamen.</td>
+<td>Konfigurationsschema vereinheitlichen.</td>
+</tr>
+<tr>
+<td>F03</td>
+<td>Kampagnenproduktion scheitert</td>
+<td><code>TrendAgent.google_client</code> existiert nicht.</td>
+<td>Scheduler an einen vorhandenen Textclient anbinden.</td>
+</tr>
+<tr>
+<td>F04</td>
+<td>Sprachfunktion scheitert</td>
+<td><code>generate_speech()</code> fehlt im WaveSpeed-Client.</td>
+<td>Auf vorhandene TTS-Methode abstimmen.</td>
+</tr>
+<tr>
+<td>F05</td>
+<td>Oberfläche zeigt unechte Daten</td>
+<td>Dashboard-Zahlen, letzte Projekte und API-Status sind statisch.</td>
+<td>Echte Projektdaten und Zustandsprüfung.</td>
+</tr>
+<tr>
+<td>F06</td>
+<td>Schnittbedienung wirkungslos</td>
+<td>Timeline-Vorschau und Griffe sind nicht an Video/Bedienung gebunden.</td>
+<td>Tatsächlichen Clip-Editor implementieren.</td>
+</tr>
+<tr>
+<td>F07</td>
+<td>Social-Status irreführend</td>
+<td>Simulierte Tokens und echter Upload sind getrennt.</td>
+<td>Ein klarer, echter Anmelde- und Veröffentlichungsweg.</td>
+</tr>
+<tr>
+<td>F08</td>
+<td>Alte Inhalte bei neuen Optionen</td>
+<td>Wiederverwendung nur nach Thema, URL und Dateiexistenz.</td>
+<td>Eingaben und Einstellungen versionieren.</td>
+</tr>
+<tr>
+<td>F09</td>
+<td>Fortschritt und Abbruch unzuverlässig</td>
+<td>Unterschiedliche Nachrichtenformate, Schritt-/Gesamtfortschritt und Abbruchlogik.</td>
+<td>Einheitlicher Job-Vertrag.</td>
+</tr>
+<tr>
+<td>F10</td>
+<td>Sprach-/Formatwahl wirkt unterschiedlich</td>
+<td>Englisch im Clipper; Tool-Format 1:1 wird nicht separat verarbeitet; Aspect-Strings uneinheitlich.</td>
+<td>Typisierte, modulübergreifende Optionen.</td>
+</tr>
+<tr>
+<td>F11</td>
+<td>Brand-Seite unbenutzbar</td>
+<td>Backend und Quick-Branding vorhanden, Oberfläche Platzhalter.</td>
+<td>Upload- und Vorschauoberfläche ergänzen.</td>
+</tr>
+<tr>
+<td>F12</td>
+<td>Agentenablauf unvollständig verbunden</td>
+<td>Platzhalterseite, Storyboard-Dateipfad statt Szenenliste, Rendering ohne Jobmodell.</td>
+<td>Einen durchgängigen Studioprozess herstellen.</td>
+</tr>
+<tr>
+<td>F13</td>
+<td>Schalter ohne vollständigen Effekt</td>
+<td>Omnichannel, Stil und weitere Einstellungen nicht durchgängig ausgewertet.</td>
+<td>Jede Option mit ihrer tatsächlichen Verarbeitung abgleichen.</td>
+</tr>
+<tr>
+<td>F14</td>
+<td>Neustart verliert Auftragszustand</td>
+<td>Jobs nur im RAM; Ergebnisse bleiben als Dateien.</td>
+<td>Dauerhafte Jobs, Wiederaufnahme und Bereinigung.</td>
+</tr>
+<tr>
+<td>F15</td>
+<td>Öffentlicher Betrieb wäre ungeschützt</td>
+<td>Keine Anmeldung oder gemeinsamen Grenzen für Dateizugriffe.</td>
+<td>Vor späterem Onlinebetrieb Zugriffsmodell festlegen.</td>
+</tr>
+</tbody>
+</table></div>
+<p>Die Tabelle beschreibt die Priorität aus technischer Sicht. Welche Punkte zuerst bearbeitet werden, hängt davon ab, welchen Produktionsablauf du zuerst wirklich nutzen möchtest.</p></section><section id="section-14" class="report-section"><div class="section-heading"><span class="section-number">14</span><h2>Wo wir Anpassungen am sinnvollsten ansetzen</h2></div><h3>Name, Design und deutsche Oberfläche</h3>
+<p>Hier beginnen wir bei <code>layout.tsx</code>, <code>Sidebar.tsx</code>, <code>globals.css</code> und den Seitentexten. Eine zentrale Übersetzungsstruktur und gemeinsame UI-Komponenten würden spätere Änderungen vereinfachen. Diese Arbeiten beeinflussen die Produktionslogik wenig, solange API-Verträge gleich bleiben. Modellprompts und erzeugte Inhalte brauchen zusätzlich eine separate Spracheinstellung.</p>
+<h3>Ein verlässlicher Hauptablauf</h3>
+<p>Für deinen ersten wirklich nutzbaren Medienwerk-Ablauf würde ich einen Weg auswählen, etwa vorhandenes Video → deutschsprachige Shorts oder Thema → fertiges Video. Dann verbinden wir Eingaben, validierte Einstellungen, Aufträge, Ausgabe und Historie durchgängig. So lässt sich ein vollständiger Fall beurteilen, bevor wir weitere Funktionen ausbauen.</p>
+<h3>Einstellungen und KI-Anbieter</h3>
+<p>Eine gemeinsame Provider-Schnittstelle mit klar getrennten Fähigkeiten für Text, Audio, Bild und Video würde neue Anbieter erleichtern. Dabei müssen nicht sofort alle Clients neu geschrieben werden. Als erster Schritt reichen ein eindeutiges Konfigurationsschema und Adapter um die vorhandenen Methoden. Anbieterfehler sollten verständlich angezeigt werden; ausgewählte Modelle und notwendige Schlüssel sollten vor dem Auftrag geprüft werden.</p>
+<h3>Projekte und Hintergrundarbeit</h3>
+<p>Ein gemeinsames Register für Projekte, Medien und Jobs sollte die Ordnersuche ablösen. Für den lokalen Betrieb kann die vorhandene SQLite-Technik dafür erweitert werden. Das erfordert noch keinen Wechsel auf eine externe Datenbank. Produktion, Historie, Dashboard und Publish würden dadurch dieselben Daten verwenden. Entscheidungen über Cloudspeicher oder verteilte Worker können wir treffen, wenn ein entsprechender Bedarf entsteht.</p>
+<h3>Eigene Änderungen und Original-Updates</h3>
+<p><code>origin</code> ist dein Fork und <code>upstream</code> das Original. Eigene Funktionen sollten in überschaubaren Commits und möglichst klaren neuen Modulen entstehen. Anpassungen in den großen Dateien <code>pipeline.py</code> und <code>api_clients.py</code> erhöhen die Wahrscheinlichkeit von Konflikten mit Original-Updates. Kleine Adapter und zentrale Datenmodelle können diese Eingriffspunkte reduzieren; konfliktfreie Updates sind trotzdem nicht garantiert.</p>
+<p>Für neue Projekte und Jobs empfehle ich eine eigene Schicht, auf die bestehende Pipelines schrittweise umgestellt werden. Das ist eine Empfehlung zur Struktur, keine bereits umgesetzte Änderung. Der vorhandene Merge-Ablauf steht in <code>UPSTREAM.md</code>.</p>
+<p class="sources">Quellen: <code>web/src/app/globals.css:1</code>, <code>server/core/database.py:1</code>, <code>api_clients.py:171</code>, <code>pipeline.py:205</code>, <code>UPSTREAM.md:1</code>.</p></section><section id="section-15" class="report-section"><div class="section-heading"><span class="section-number">15</span><h2>Ausgangspunkt für unsere nächste Entscheidung</h2></div><p>Die technische Struktur ist jetzt nachvollziehbar. Für die eigentliche Anpassung brauchen wir vor allem dein gewünschtes Ergebnis: Welche Inhalte möchtest du produzieren, welcher Ablauf soll zuerst vollständig funktionieren, welche Anbieter möchtest du nutzen und wie viel Kontrolle brauchst du vor dem Rendern?</p>
+<p>Meine erste technische Empfehlung ist ein gemeinsames Projektmodell plus konsistente Einstellungen, verbunden mit einem ausgewählten Hauptablauf. Name, Sprache und Design können wir darauf abgestimmt ändern. Die beschriebenen Befunde bleiben als Arbeitsgrundlage im Repository; die visuelle Ausgabe erlaubt das Kommentieren konkreter Module und Aussagen.</p></section><section id="section-16" class="report-section"><div class="section-heading"><span class="section-number">16</span><h2>Anhang: Schnittstellen im aktuellen Code</h2></div><p>Diese Liste wurde aus den Router-Dekoratoren im untersuchten Arbeitsstand abgeleitet. Sie zeigt vorhandene Schnittstellen, keine Bestätigung erfolgreicher Verarbeitung. Die interaktive FastAPI-Dokumentation liegt lokal unter <a href="http://localhost:8008/docs">localhost:8008/docs</a>. Zusätzlich definiert <code>server/main.py</code> die Endpunkte <code>GET /health</code>, <code>GET /api/config</code> und <code>POST /api/config</code>.</p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>Methode</th>
+<th>Adresse</th>
+<th>Implementierung</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>POST</td>
+<td><code>/api/generate/quick</code></td>
+<td><code>generation.py:100</code></td>
+</tr>
+<tr>
+<td>WEBSOCKET</td>
+<td><code>/api/generate/ws/{job_id}</code></td>
+<td><code>generation.py:106</code></td>
+</tr>
+<tr>
+<td>GET</td>
+<td><code>/api/generate/viral-topics</code></td>
+<td><code>generation.py:117</code></td>
+</tr>
+<tr>
+<td>GET</td>
+<td><code>/api/generate/status/{job_id}</code></td>
+<td><code>generation.py:124</code></td>
+</tr>
+<tr>
+<td>POST</td>
+<td><code>/api/generate/cancel/{job_id}</code></td>
+<td><code>generation.py:131</code></td>
+</tr>
+<tr>
+<td>GET</td>
+<td><code>/api/generate/settings</code></td>
+<td><code>generation.py:136</code></td>
+</tr>
+<tr>
+<td>POST</td>
+<td><code>/api/generate/settings</code></td>
+<td><code>generation.py:140</code></td>
+</tr>
+<tr>
+<td>GET</td>
+<td><code>/api/generate/history</code></td>
+<td><code>generation.py:147</code></td>
+</tr>
+<tr>
+<td>DELETE</td>
+<td><code>/api/generate/history/{project_id}</code></td>
+<td><code>generation.py:227</code></td>
+</tr>
+<tr>
+<td>GET</td>
+<td><code>/api/generate/media</code></td>
+<td><code>generation.py:240</code></td>
+</tr>
+<tr>
+<td>POST</td>
+<td><code>/api/clipper/analyze</code></td>
+<td><code>clipper.py:30</code></td>
+</tr>
+<tr>
+<td>POST</td>
+<td><code>/api/clipper/analyze_local</code></td>
+<td><code>clipper.py:56</code></td>
+</tr>
+<tr>
+<td>POST</td>
+<td><code>/api/clipper/render</code></td>
+<td><code>clipper.py:91</code></td>
+</tr>
+<tr>
+<td>POST</td>
+<td><code>/api/videofx/generate</code></td>
+<td><code>videofx.py:51</code></td>
+</tr>
+<tr>
+<td>DELETE</td>
+<td><code>/api/videofx/job/{job_id}</code></td>
+<td><code>videofx.py:57</code></td>
+</tr>
+<tr>
+<td>POST</td>
+<td><code>/api/videofx/login</code></td>
+<td><code>videofx.py:62</code></td>
+</tr>
+<tr>
+<td>WEBSOCKET</td>
+<td><code>/api/videofx/ws/{job_id}</code></td>
+<td><code>videofx.py:80</code></td>
+</tr>
+<tr>
+<td>POST</td>
+<td><code>/api/director/process</code></td>
+<td><code>director.py:39</code></td>
+</tr>
+<tr>
+<td>POST</td>
+<td><code>/api/explainer/process</code></td>
+<td><code>explainer.py:53</code></td>
+</tr>
+<tr>
+<td>POST</td>
+<td><code>/api/brand/upload</code></td>
+<td><code>brand.py:11</code></td>
+</tr>
+<tr>
+<td>DELETE</td>
+<td><code>/api/brand/delete/{type}</code></td>
+<td><code>brand.py:36</code></td>
+</tr>
+<tr>
+<td>POST</td>
+<td><code>/api/tools/caption</code></td>
+<td><code>tools.py:17</code></td>
+</tr>
+<tr>
+<td>POST</td>
+<td><code>/api/tools/convert</code></td>
+<td><code>tools.py:55</code></td>
+</tr>
+<tr>
+<td>POST</td>
+<td><code>/api/tools/tts</code></td>
+<td><code>tools.py:92</code></td>
+</tr>
+<tr>
+<td>GET</td>
+<td><code>/api/publish/library</code></td>
+<td><code>publish.py:18</code></td>
+</tr>
+<tr>
+<td>POST</td>
+<td><code>/api/publish/youtube</code></td>
+<td><code>publish.py:82</code></td>
+</tr>
+<tr>
+<td>POST</td>
+<td><code>/api/studio/chat</code></td>
+<td><code>studio.py:41</code></td>
+</tr>
+<tr>
+<td>POST</td>
+<td><code>/api/studio/script</code></td>
+<td><code>studio.py:89</code></td>
+</tr>
+<tr>
+<td>POST</td>
+<td><code>/api/studio/storyboard</code></td>
+<td><code>studio.py:107</code></td>
+</tr>
+<tr>
+<td>POST</td>
+<td><code>/api/studio/render</code></td>
+<td><code>studio.py:158</code></td>
+</tr>
+<tr>
+<td>GET</td>
+<td><code>/api/campaigns/</code></td>
+<td><code>campaigns.py:16</code></td>
+</tr>
+<tr>
+<td>POST</td>
+<td><code>/api/campaigns/</code></td>
+<td><code>campaigns.py:20</code></td>
+</tr>
+<tr>
+<td>POST</td>
+<td><code>/api/campaigns/{cid}/toggle</code></td>
+<td><code>campaigns.py:28</code></td>
+</tr>
+<tr>
+<td>DELETE</td>
+<td><code>/api/campaigns/{cid}</code></td>
+<td><code>campaigns.py:35</code></td>
+</tr>
+<tr>
+<td>GET</td>
+<td><code>/api/social/status</code></td>
+<td><code>social.py:16</code></td>
+</tr>
+<tr>
+<td>GET</td>
+<td><code>/api/social/youtube/auth</code></td>
+<td><code>social.py:28</code></td>
+</tr>
+<tr>
+<td>POST</td>
+<td><code>/api/social/youtube/callback</code></td>
+<td><code>social.py:34</code></td>
+</tr>
+<tr>
+<td>POST</td>
+<td><code>/api/social/tiktok/auth</code></td>
+<td><code>social.py:51</code></td>
+</tr>
+<tr>
+<td>POST</td>
+<td><code>/api/social/instagram/auth</code></td>
+<td><code>social.py:55</code></td>
+</tr>
+<tr>
+<td>POST</td>
+<td><code>/api/social/publish/youtube</code></td>
+<td><code>social.py:59</code></td>
+</tr>
+</tbody>
+</table></div></section><footer class="footer"><p>Gestaltung aus der Anwendung: Outfit-Schrift, dunkle Glasflächen und türkise Akzente aus <code>web/src/app/globals.css</code>. Der helle Modus ist eine Leseoption dieses Berichts. Screenshots zeigen den tatsächlichen lokalen Zustand.</p><a href="PLATFORM_ANALYSIS.md" download>Analyse als Markdown speichern</a><a href="clipper.png" target="_blank">Screenshot: Clipper</a><br><a class="backtop" href="#top">Zurück zum Anfang ↑</a></footer></main></div></div><script>
+const root=document.documentElement;
+document.getElementById('theme-toggle').addEventListener('click',()=>{root.dataset.theme=root.dataset.theme==='light'?'dark':'light';document.getElementById('theme-toggle').textContent=root.dataset.theme==='light'?'Dunkel':'Hell';window.dispatchEvent(new Event('report-theme'))});
+const observer=new IntersectionObserver(entries=>{for(const entry of entries){if(entry.isIntersecting){document.querySelectorAll('.contents a').forEach(a=>a.classList.toggle('active',a.hash==='#'+entry.target.id));}}},{rootMargin:'-10% 0px -75% 0px'});
+document.querySelectorAll('.report-section').forEach(s=>observer.observe(s));
+</script><script type="application/json" id="source-data">[{"name": "pipeline.py", "contents": "    def run(self, topic: str, start_point: str):\n        success = False\n        self.word_timestamps_for_images = []\n        try:\n            logging.info(f\"Starting pipeline for topic: '{topic}' from step: '{start_point}'\")\n            safe_topic = re.sub(r'[\\\\/:*?\"<>|]', '', topic)\n            output_dir = safe_topic\n            os.makedirs(output_dir, exist_ok=True)\n            \n            # --- File Paths ---\n            summary_file = os.path.join(output_dir, \"summary.txt\")\n            script_file = os.path.join(output_dir, \"podcast_script.txt\")\n            audio_file = os.path.join(output_dir, \"podcast.wav\")\n"}, {"name": "server/core/scheduler.py", "contents": "                        config = load_config()\n                        # Pass niche to TrendAgent by wrapping it in a custom prompt or just relying on its logic\n                        # For simplicity, we just use the niche directly as the topic or prefix it\n                        # TrendAgent usually gets generic topics, but we'll adapt:\n                        trend = TrendAgent(config, DummyUI(), \"TrendAgent\")\n                        # Override the find_viral_topics locally to use the niche\n                        prompt = f\"Generate 1 highly engaging viral video title about: {c['niche']}. Output only the title.\"\n                        topic = trend.google_client._generate_text(prompt).strip().strip('\"').strip(\"'\")\n                        \n"}, {"name": "web/src/app/settings/page.tsx", "contents": "            <\/div>\n            <div>\n              <label className=\"block text-xs font-medium text-zinc-500 mb-2 uppercase tracking-wider\">WaveSpeed API Key<\/label>\n              <input type=\"password\" value={config.WAVESPEED_API_KEY || \"\"} onChange={e => updateConfig(\"WAVESPEED_API_KEY\", e.target.value)} className=\"modern-input\" placeholder=\"Video gen key...\" />\n            <\/div>\n"}, {"name": "api_clients.py", "contents": "                raise RuntimeError(f\"Ollama local generation failed: {e}\")\n                \n        elif engine == \"WaveSpeed AI\":\n            api_key = self.config.get(\"WAVESPEED_AI_KEY\")\n            if not api_key: raise ValueError(\"WaveSpeed AI key is missing for Text Engine.\")\n            \n            model_id = self.config.get(\"WAVESPEED_TEXT_MODEL\", \"meta-llama/llama-3.3-70b-instruct\")\n"}, {"name": "server/routers/tools.py", "contents": "def generate_tts(req: TTSRequest):\n    try:\n        config = load_config()\n        tts_client = WaveSpeedClient(config.get(\"WAVESPEED_API_KEY\", \"\"))\n        \n        filename = f\"tts_{req.voice}_{hash(req.text) % 10000}.mp3\"\n        out_path = os.path.join(TOOLS_DIR, filename)\n        \n        tts_client.generate_speech(req.text, req.voice, out_path)\n        \n        return {\"message\": \"Audio generated successfully\", \"path\": out_path}\n    except Exception as e:\n"}, {"name": "server/routers/generation.py", "contents": "def get_generation_history():\n    import glob\n    workspace_dir = \"workspace\"\n    if not os.path.exists(workspace_dir):\n        return []\n    \n    projects = []\n    for folder in os.listdir(workspace_dir):\n        folder_path = os.path.join(workspace_dir, folder)\n        if not os.path.isdir(folder_path): continue\n            \n        # Determine project type\n        project_type = \"clipper\" if folder.startswith(\"clipper_\") else \"podcast\"\n        \n        videos = []\n        scripts = []\n        \n        # Get creation time (approx) based on directory creation\n        created_at = os.path.getctime(folder_path)\n        \n        if project_type == \"podcast\":\n            vid = os.path.join(folder_path, \"final_podcast.mp4\")\n            if not os.path.exists(vid): vid = os.path.join(folder_path, \"final_podcast_video.mp4\")\n            if os.path.exists(vid): videos.append({\"title\": \"Full Podcast\", \"path\": vid.replace(\"\\\\\", \"/\")})\n            \n            script = os.path.join(folder_path, \"podcast_script.txt\")\n            if os.path.exists(script): scripts.append(script.replace(\"\\\\\", \"/\"))\n        else:\n            # Clipper shorts\n            clip_files = glob.glob(os.path.join(folder_path, \"Final_*.mp4\"))\n"}, {"name": "server/core/queue.py", "contents": "def stop_job(job_id: str):\n    if job_id in _JOBS:\n        _JOBS[job_id][\"stop_event\"].set()\n        _JOBS[job_id][\"status\"] = \"cancelled\"\n        update_job(job_id, status=\"cancelled\") # trigger broadcast\n"}]</script><script type="module">
+import {File} from "https://esm.sh/@pierre/diffs@1.2.10?bundle";
+const files=JSON.parse(document.getElementById('source-data').textContent);
+function render(container){container.replaceChildren();new File({theme:{light:"github-light",dark:"github-dark"},themeType:document.documentElement.dataset.theme==='light'?'light':'dark',overflow:"wrap"}).render({containerWrapper:container,file:files[Number(container.dataset.snippet)]});container.dataset.rendered='yes';}
+document.querySelectorAll('.evidence').forEach(d=>d.addEventListener('toggle',()=>{if(d.open)render(d.querySelector('.code-surface'))}));
+window.addEventListener('report-theme',()=>document.querySelectorAll('.evidence[open] .code-surface').forEach(render));
+</script></body></html>
