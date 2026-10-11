@@ -174,6 +174,10 @@ Installation, Frontend-Build-Befehle und Grenzen der tatsächlichen Prüfungen
 stehen in [LOCAL_TESTING.md](LOCAL_TESTING.md) und
 [docs/STABILIZATION_RESULT.md](docs/STABILIZATION_RESULT.md).
 
+Gemini verwendet jetzt `google-genai==2.29.0`. Die Git-Sicherung, SDK-Umstellung,
+116 lokalen Tests und noch offenen Modell-/Anbieterprüfungen stehen in
+[docs/GEMINI_SDK_MIGRATION.md](docs/GEMINI_SDK_MIGRATION.md).
+
 Neue Backend-Module sollen die gemeinsamen Projekt-, Medien- und Jobverträge
 verwenden; siehe [docs/MODULE_DEVELOPMENT.md](docs/MODULE_DEVELOPMENT.md). Die
 ursprüngliche Funktionsbeschreibung oben ist die historische Projektbeschreibung

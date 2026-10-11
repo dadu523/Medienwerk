@@ -12,10 +12,12 @@ import base64
 import wave
 import json
 import logging
+import textwrap
 from functools import wraps
 import re
-import google.generativeai as genai
-from google.generativeai.types import HarmCategory, HarmBlockThreshold
+from google import genai
+from google.genai import types
+from google.genai import errors as genai_errors
 from google.api_core import exceptions as google_exceptions
 
 # Safely import Google Cloud libraries for Vertex AI
@@ -37,7 +39,7 @@ GEMINI_TTS_MODEL = "gemini-2.5-flash-preview-tts"
 WAVESPEED_POLL_URL = "https://api.wavespeed.ai/api/v3/predictions/{}/result"
 WAVESPEED_BASE_ENDPOINT = "https://api.wavespeed.ai/api/v3/{}"
 VEO_MODEL_ID = "veo-3.0-generate-preview" # For Vertex AI Video
-NANO_BANANA_IMAGE_MODEL = "gemini-2.5-flash-image-preview" # For Vertex AI Image
+NANO_BANANA_IMAGE_MODEL = "gemini-2.5-flash-image" # For Gemini API image generation
 
 # --- Style Profiles: Single source of truth for all content styles ---
 STYLE_PROFILES = {
@@ -115,6 +117,15 @@ def handle_api_errors(func):
         for attempt in range(max_retries):
             try:
                 return func(*args, **kwargs)
+            except genai_errors.APIError as e:
+                # The Gen AI SDK already has its own request retry policy. We
+                # configure one SDK attempt and keep quota failures visible
+                # instead of retrying a potentially billable generation.
+                if getattr(e, "code", None) == 429:
+                    error_message = f"Gemini API quota exceeded: {e}"
+                    logging.error(error_message)
+                    raise RuntimeError(error_message) from e
+                raise
             except google_exceptions.ResourceExhausted as e:
                 error_str = str(e.message) if hasattr(e, "message") else str(e)
                 match = re.search(r"Please retry in ([0-9.]+)s", error_str)
@@ -175,16 +186,129 @@ class GoogleClient:
         self.api_key = config.get("GEMINI_API_KEY")
         if not self.api_key:
             logging.warning("Google API key is missing. Ensure Ollama or WaveSpeed is selected for text generation.")
-        else:
-            genai.configure(api_key=self.api_key)
-            self.safety_settings = {
-                HarmCategory.HARM_CATEGORY_DANGEROUS_CONTENT: HarmBlockThreshold.BLOCK_NONE,
-                HarmCategory.HARM_CATEGORY_HATE_SPEECH: HarmBlockThreshold.BLOCK_NONE,
-                HarmCategory.HARM_CATEGORY_HARASSMENT: HarmBlockThreshold.BLOCK_NONE,
-                HarmCategory.HARM_CATEGORY_SEXUALLY_EXPLICIT: HarmBlockThreshold.BLOCK_NONE,
-            }
-            self.text_model = genai.GenerativeModel(GEMINI_TEXT_MODEL, safety_settings=self.safety_settings)
+        self.safety_settings = [
+            types.SafetySetting(
+                category=getattr(types.HarmCategory, category),
+                threshold=types.HarmBlockThreshold.BLOCK_NONE,
+            )
+            for category in (
+                "HARM_CATEGORY_DANGEROUS_CONTENT",
+                "HARM_CATEGORY_HATE_SPEECH",
+                "HARM_CATEGORY_HARASSMENT",
+                "HARM_CATEGORY_SEXUALLY_EXPLICIT",
+            )
+        ]
 
+    def _client(self, timeout_ms: int):
+        """Create an isolated, explicitly authenticated Gemini API client."""
+        if not self.api_key:
+            raise RuntimeError("Gemini API key not configured properly.")
+        return genai.Client(
+            api_key=self.api_key,
+            vertexai=False,
+            http_options=types.HttpOptions(
+                timeout=timeout_ms,
+                retry_options=types.HttpRetryOptions(attempts=1),
+            ),
+        )
+
+    @staticmethod
+    def _response_parts(response):
+        parts = []
+        for candidate in getattr(response, "candidates", None) or []:
+            content = getattr(candidate, "content", None)
+            parts.extend(getattr(content, "parts", None) or [])
+        return parts
+
+    @staticmethod
+    def _inline_bytes(inline_data):
+        data = getattr(inline_data, "data", None)
+        if isinstance(data, bytes):
+            return data
+        if isinstance(data, bytearray):
+            return bytes(data)
+        if isinstance(data, str):
+            return base64.b64decode(data)
+        return None
+
+    @staticmethod
+    def _response_text(response):
+        candidates = getattr(response, "candidates", None) or []
+        if not candidates:
+            raise RuntimeError("Gemini returned no text content.")
+        candidate = candidates[0]
+        content = getattr(candidate, "content", None)
+        text_parts = [
+            part.text
+            for part in (getattr(content, "parts", None) or [])
+            if not getattr(part, "thought", False)
+            and isinstance(getattr(part, "text", None), str)
+            and part.text
+        ]
+        if text_parts:
+            return "".join(text_parts)
+        finish_reason = getattr(candidate, "finish_reason", None)
+        if finish_reason:
+            raise RuntimeError(f"Gemini returned no text content (finish reason: {finish_reason}).")
+        raise RuntimeError("Gemini returned no text content.")
+
+    @staticmethod
+    def _split_text_chunks(text: str, limit: int) -> list[str]:
+        chunks = []
+        current = ""
+        for line in text.splitlines():
+            fragments = textwrap.wrap(
+                line,
+                width=limit,
+                break_long_words=True,
+                break_on_hyphens=False,
+            ) or ([""] if line == "" else [])
+            for fragment in fragments:
+                if len(current) + len(fragment) + bool(current) > limit:
+                    if current:
+                        chunks.append(current)
+                    current = fragment
+                else:
+                    current = f"{current}\n{fragment}" if current else fragment
+        if current:
+            chunks.append(current)
+        return chunks
+
+    @classmethod
+    def _audio_response_bytes(cls, response):
+        audio_data = []
+        sample_rate = None
+        for part in cls._response_parts(response):
+            inline_data = getattr(part, "inline_data", None)
+            mime_type = getattr(inline_data, "mime_type", "") if inline_data else ""
+            if not mime_type.startswith("audio/"):
+                continue
+            if not (mime_type.startswith("audio/L16") or mime_type.startswith("audio/pcm")):
+                raise RuntimeError(f"Gemini TTS returned unsupported audio format: {mime_type}.")
+            data = cls._inline_bytes(inline_data)
+            if not data:
+                continue
+            rate_match = re.search(r"(?:^|;)\s*rate=(\d+)", mime_type, re.IGNORECASE)
+            current_rate = int(rate_match.group(1)) if rate_match else 24_000
+            if current_rate <= 0:
+                raise RuntimeError("Gemini TTS returned a non-positive sample rate.")
+            if sample_rate is not None and sample_rate != current_rate:
+                raise RuntimeError("Gemini TTS returned audio chunks with different sample rates.")
+            if len(data) % 2:
+                raise RuntimeError("Gemini TTS returned PCM data with an incomplete 16-bit sample.")
+            sample_rate = current_rate
+            audio_data.append(data)
+        if not audio_data:
+            if not getattr(response, "candidates", None):
+                raise RuntimeError("Gemini TTS returned no candidates (response may have been blocked).")
+            text = " ".join(
+                part.text for part in cls._response_parts(response)
+                if isinstance(getattr(part, "text", None), str) and part.text
+            )
+            raise RuntimeError(f"Gemini TTS returned no audio data. {text}")
+        return b"".join(audio_data), sample_rate or 24_000
+
+    @handle_api_errors
     def _generate_text(self, prompt: str, as_json=False) -> str:
         """Dynamically routes text generation to Gemini, WaveSpeed, or Ollama."""
         engine = self.config.get("TEXT_ENGINE", "Gemini API")
@@ -236,12 +360,17 @@ class GoogleClient:
                 raise RuntimeError(f"WaveSpeed text generation failed: {e}")
                     
         else: # Gemini API
-            if not hasattr(self, 'text_model'): raise RuntimeError("Gemini API key not configured properly.")
-            kwargs = {}
-            if as_json: kwargs["generation_config"] = {"response_mime_type": "application/json"}
-            kwargs["request_options"] = {"timeout": 120}
-            response = self.text_model.generate_content(prompt, **kwargs)
-            return response.text
+            config = types.GenerateContentConfig(
+                response_mime_type="application/json" if as_json else None,
+                safety_settings=self.safety_settings,
+            )
+            with self._client(120_000) as client:
+                response = client.models.generate_content(
+                    model=GEMINI_TEXT_MODEL,
+                    contents=prompt,
+                    config=config,
+                )
+            return self._response_text(response)
 
     @handle_api_errors
     def deep_research(self, topic: str, language: str, news_client: NewsApiClient) -> str:
@@ -266,17 +395,20 @@ class GoogleClient:
         
         if engine == "Gemini API":
             logging.info("Using Gemini native Google Search for single-pass research...")
-            api_url = f"https://generativelanguage.googleapis.com/v1beta/models/{GEMINI_TEXT_MODEL}:generateContent?key={self.api_key}"
-            payload = {"contents": [{"parts": [{"text": prompt}]}], "tools": [{"google_search": {}}]}
             try:
-                response = requests.post(api_url, json=payload, timeout=120)
-                response.raise_for_status()
-                response_json = response.json()
-                summary = response_json.get("candidates", [{}])[0].get("content", {}).get("parts", [{}])[0].get("text")
-                if not summary: raise ValueError("No text content found in Gemini research.")
-                return summary
-            except requests.exceptions.HTTPError:
-                raise # Let the @handle_api_errors wrapper manage retries
+                config = types.GenerateContentConfig(
+                    tools=[types.Tool(google_search=types.GoogleSearch())],
+                    safety_settings=self.safety_settings,
+                )
+                with self._client(120_000) as client:
+                    response = client.models.generate_content(
+                        model=GEMINI_TEXT_MODEL,
+                        contents=prompt,
+                        config=config,
+                    )
+                return self._response_text(response)
+            except genai_errors.APIError:
+                raise
             except Exception as e:
                 logging.error(f"Failed during Research: {e}")
                 raise RuntimeError(f"Failed research: {e}")
@@ -530,18 +662,32 @@ Generate the complete script now, ensuring all vocal directions match the '{cont
 
     @handle_api_errors
     def gemini_nanobanana_image(self, prompt: str, output_path: str):
-        logging.info(f"Generating image with Gemini API (gemini-2.5-flash-image-preview): '{prompt}'")
-        model = genai.GenerativeModel(NANO_BANANA_IMAGE_MODEL, safety_settings=self.safety_settings)
-        response = model.generate_content(prompt, request_options={"timeout": 120})
-        
-        image_part = response.candidates[0].content.parts[0]
-        if "image" not in image_part.mime_type:
-            raise RuntimeError(f"API did not return an image. It may have returned text instead: {response.text}")
-        
-        image_data = image_part.inline_data.data
-        with open(output_path, "wb") as f: 
-            f.write(base64.b64decode(image_data))
-        logging.info(f"Image successfully saved to {output_path}")
+        logging.info(f"Generating image with Gemini API ({NANO_BANANA_IMAGE_MODEL}): '{prompt}'")
+        config = types.GenerateContentConfig(safety_settings=self.safety_settings)
+        with self._client(120_000) as client:
+            response = client.models.generate_content(
+                model=NANO_BANANA_IMAGE_MODEL,
+                contents=prompt,
+                config=config,
+            )
+
+        for part in self._response_parts(response):
+            inline_data = getattr(part, "inline_data", None)
+            mime_type = getattr(inline_data, "mime_type", "") if inline_data else ""
+            image_data = self._inline_bytes(inline_data) if mime_type.startswith("image/") else None
+            if image_data:
+                with open(output_path, "wb") as f:
+                    f.write(image_data)
+                logging.info(f"Image successfully saved to {output_path}")
+                return
+
+        response_text = " ".join(
+            part.text for part in self._response_parts(response)
+            if isinstance(getattr(part, "text", None), str) and part.text
+        )
+        if not getattr(response, "candidates", None):
+            raise RuntimeError("Gemini image generation returned no candidates (response may have been blocked).")
+        raise RuntimeError(f"API did not return an image. It may have returned text instead: {response_text}")
 
     @handle_api_errors
     def vertex_nanobanana_image(self, prompt: str, output_path: str):
@@ -576,8 +722,6 @@ Generate the complete script now, ensuring all vocal directions match the '{cont
         
         script_for_api = script.split('Text :')[-1].strip() if 'Text :' in script else script
         
-        api_url = f"https://generativelanguage.googleapis.com/v1beta/models/{GEMINI_TTS_MODEL}:generateContent?key={self.api_key}"
-        
         is_podcast_mode = tts_config.get("CONTENT_STYLE") == "Podcast"
         host_name = tts_config.get("HOST_NAME", "Alex")
         guest_name = tts_config.get("GUEST_NAME", "Maya")
@@ -589,22 +733,15 @@ Generate the complete script now, ensuring all vocal directions match the '{cont
             logging.info("Single-speaker script detected. Using single voice.")
 
         CHUNK_SIZE_LIMIT = 4500
-        script_lines = script_for_api.split('\n')
-        script_chunks = []
-        current_chunk = ""
-
-        for line in script_lines:
-            if len(current_chunk) + len(line) + 1 > CHUNK_SIZE_LIMIT:
-                if current_chunk: script_chunks.append(current_chunk)
-                current_chunk = line
-            else:
-                current_chunk = f"{current_chunk}\n{line}" if current_chunk else line
-        if current_chunk: script_chunks.append(current_chunk)
+        script_chunks = self._split_text_chunks(script_for_api, CHUNK_SIZE_LIMIT)
+        if not script_chunks:
+            raise ValueError("Gemini TTS requires non-empty script text.")
 
         if len(script_chunks) > 1:
             logging.info(f"Script is long, splitting into {len(script_chunks)} chunks to ensure quality.")
 
         all_audio_data = []
+        sample_rate = None
 
         for i, chunk in enumerate(script_chunks):
             chunk = chunk.strip()
@@ -619,44 +756,59 @@ Generate the complete script now, ensuring all vocal directions match the '{cont
                 "natural emotion, dynamic pacing, breathing, and conversational tone to completely "
                 "eliminate any robotic feel. Do not read this instruction, ONLY read the script:\\n\\n"
             )
-            
-            payload = {
-                "contents": [{"parts": [{"text": instruction + chunk}]}],
-                "generationConfig": {"responseModalities": ["AUDIO"]},
-                "safetySettings": [
-                    {"category": "HARM_CATEGORY_HARASSMENT", "threshold": "BLOCK_NONE"},
-                    {"category": "HARM_CATEGORY_HATE_SPEECH", "threshold": "BLOCK_NONE"},
-                    {"category": "HARM_CATEGORY_SEXUALLY_EXPLICIT", "threshold": "BLOCK_NONE"},
-                    {"category": "HARM_CATEGORY_DANGEROUS_CONTENT", "threshold": "BLOCK_NONE"}
-                ]
-            }
-            
+            speech_config = None
             if is_multi_speaker_script:
-                 payload["generationConfig"]["speechConfig"] = {"multiSpeakerVoiceConfig": {"speakerVoiceConfigs": [
-                    {"speaker": host_name, "voiceConfig": {"prebuiltVoiceConfig": {"voiceName": tts_config["SPEAKER1"]}}},
-                    {"speaker": guest_name, "voiceConfig": {"prebuiltVoiceConfig": {"voiceName": tts_config["SPEAKER2"]}}}
-                ]}}
+                speech_config = types.SpeechConfig(
+                    multi_speaker_voice_config=types.MultiSpeakerVoiceConfig(
+                        speaker_voice_configs=[
+                            types.SpeakerVoiceConfig(
+                                speaker=host_name,
+                                voice_config=types.VoiceConfig(
+                                    prebuilt_voice_config=types.PrebuiltVoiceConfig(
+                                        voice_name=tts_config.get("SPEAKER1", "Kore")
+                                    )
+                                ),
+                            ),
+                            types.SpeakerVoiceConfig(
+                                speaker=guest_name,
+                                voice_config=types.VoiceConfig(
+                                    prebuilt_voice_config=types.PrebuiltVoiceConfig(
+                                        voice_name=tts_config.get("SPEAKER2", "Puck")
+                                    )
+                                ),
+                            ),
+                        ]
+                    )
+                )
             else:
-                 payload["generationConfig"]["speechConfig"] = {"voiceConfig": {"prebuiltVoiceConfig": {"voiceName": tts_config.get("SPEAKER1", "Kore")}}}
+                speech_config = types.SpeechConfig(
+                    voice_config=types.VoiceConfig(
+                        prebuilt_voice_config=types.PrebuiltVoiceConfig(
+                            voice_name=tts_config.get("SPEAKER1", "Kore")
+                        )
+                    )
+                )
 
-            
-            response = requests.post(api_url, json=payload, timeout=300)
-            response.raise_for_status()
-            resp_json = response.json()
-            candidates = resp_json.get("candidates", [])
-            if not candidates: raise RuntimeError(f"TTS failed: No candidates in response. {resp_json}")
-            
-            parts = candidates[0].get("content", {}).get("parts", [])
-            if not parts: raise RuntimeError(f"TTS failed: No content parts. Finish Reason: '{candidates[0].get('finishReason', 'UNKNOWN')}'.")
-
-            audio_data = parts[0].get("inlineData", {}).get("data")
-            if not audio_data: raise RuntimeError(f"TTS failed: No audio data. API may have returned text: '{parts[0].get('text', '')}'")
-            
-            all_audio_data.append(base64.b64decode(audio_data))
+            config = types.GenerateContentConfig(
+                response_modalities=["AUDIO"],
+                speech_config=speech_config,
+                safety_settings=self.safety_settings,
+            )
+            with self._client(300_000) as client:
+                response = client.models.generate_content(
+                    model=GEMINI_TTS_MODEL,
+                    contents=f"{instruction}{chunk}",
+                    config=config,
+                )
+            audio_data, chunk_rate = self._audio_response_bytes(response)
+            if sample_rate is not None and sample_rate != chunk_rate:
+                raise RuntimeError("Gemini TTS returned chunks with different sample rates.")
+            sample_rate = chunk_rate
+            all_audio_data.append(audio_data)
 
         logging.info("All audio chunks generated. Combining into a single file...")
         with wave.open(output_path, "wb") as wf:
-            wf.setnchannels(1); wf.setsampwidth(2); wf.setframerate(24000)
+            wf.setnchannels(1); wf.setsampwidth(2); wf.setframerate(sample_rate or 24_000)
             for audio_data in all_audio_data:
                 wf.writeframes(audio_data)
 

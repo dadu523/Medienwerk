@@ -56,6 +56,12 @@ verweist für das CPU-Build von PyTorch auf `https://download.pytorch.org/whl/cp
 `npm ci` verwendet den vorhandenen `web/package-lock.json`. Whisper lädt das
 benötigte Sprachmodell beim ersten Transkriptionslauf herunter.
 
+Gemini verwendet `google-genai==2.29.0`. Die SDK-Umstellung, geprüften Wege und
+Modellfristen stehen in [docs/GEMINI_SDK_MIGRATION.md](docs/GEMINI_SDK_MIGRATION.md).
+Für bestehende Installationen beschreibt der Bericht auch das Entfernen der
+alten SDK-Pakete. Das neue SDK benötigt HTTPX und die aktualisierte
+WebSocket-Bibliothek aus der Lockdatei.
+
 Der erfasste lokale Stand ist Python 3.11.15, Torch 2.14.1+cpu, Node.js
 26.11.1, npm 12.2.0 und FFmpeg 9.0.2. In der bestehenden virtuellen Umgebung
 ist `pip` nicht installiert; die dokumentierte Neuinstallation legt eine neue
@@ -77,6 +83,9 @@ Prüfwerkzeuge ergänzen:
 Testlaufzeitabhängigkeiten fest. httpx2 wird für den aktuellen FastAPI-/Starlette-
 `TestClient`-Stack benötigt; die Anwendungsabhängigkeiten bleiben in der
 separaten Python-Lockdatei.
+Das zusätzliche `httpx` in der Anwendung wird vom Gemini-SDK verwendet.
+Die vollständige Suite umfasst nach der SDK-Umstellung 116 Tests; echte externe
+HTTP-Anfragen werden auch für diesen SDK-Transport gesperrt.
 
 Für eine separate Frontend-Prüfung (den Dev-Server vorher beenden oder eine
 separate Kopie verwenden, da Build und Dev dieselbe `.next`-Ablage nutzen):

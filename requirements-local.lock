@@ -1,5 +1,6 @@
-# Exact versions found in .venv on 2026-10-11 (Python 3.11.15).
-# CPU PyTorch build; index source is the official CPU wheel index below.
+# Locked local runtime on 2026-10-11 (Python 3.11.15).
+# Google GenAI SDK migration; unaffected application pins preserved.
+# CPU PyTorch uses the official wheel index below.
 --index-url https://pypi.org/simple
 --extra-index-url https://download.pytorch.org/whl/cpu
 
@@ -12,13 +13,13 @@ charset-normalizer==3.5.2
 click==8.5.0
 cryptography==50.0.2
 decorator==4.4.2
+distro==1.9.0
 docstring-parser==0.18.0
 fastapi==0.143.0
 ffmpeg-python==0.2.0
 filelock==3.32.3
 fsspec==2026.7.0
 future==1.0.0
-google-ai-generativelanguage==0.6.15
 google-api-core==2.33.0
 google-api-python-client==2.201.0
 google-auth==2.61.0
@@ -30,7 +31,7 @@ google-cloud-core==2.8.0
 google-cloud-resource-manager==1.18.0
 google-cloud-storage==2.19.0
 google-crc32c==1.9.0
-google-generativeai==0.8.6
+google-genai==2.29.0
 google-resumable-media==2.11.0
 googleapis-common-protos==1.75.0
 greenlet==3.5.6
@@ -38,7 +39,9 @@ grpc-google-iam-v1==0.14.4
 grpcio==1.84.0
 grpcio-status==1.71.2
 h11==0.16.0
+httpcore==1.0.9
 httplib2==0.32.0
+httpx==0.28.1
 idna==3.20
 imageio==2.38.1
 imageio-ffmpeg==0.6.0
@@ -78,9 +81,11 @@ requests-oauthlib==2.0.0
 setuptools==78.1.0
 shapely==2.2.0
 six==1.17.0
+sniffio==1.3.1
 sqlalchemy==2.1.4
 starlette==1.7.0
 sympy==1.14.0
+tenacity==9.1.4
 tiktoken==0.14.0
 torch==2.14.1+cpu
 tqdm==4.70.1
@@ -91,5 +96,5 @@ uritemplate==4.2.0
 urllib3==2.8.0
 uvicorn==0.54.0
 watchfiles==1.3.0
-websockets==12.0
+websockets==16.1.1
 yt-dlp==2026.8.19

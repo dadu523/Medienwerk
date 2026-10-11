@@ -33,3 +33,13 @@ Installationsort: `/home/dragos/.codex/skills/`. Weitere Skills werden nur nach 
 | P6 | Lokale Abnahme abgeschlossen: 96 Tests in zwei Umgebungen, sauberer Build und Browser-/FFmpeg-Prüfung. |
 
 Ausführliche Nachweise und verbleibende Anbietergrenzen stehen in [STABILIZATION_RESULT.md](STABILIZATION_RESULT.md). Schnittstellen für spätere Anpassungen: [MODULE_DEVELOPMENT.md](MODULE_DEVELOPMENT.md).
+
+## Beauftragte Folgeschritte 1 und 2
+
+Der Stabilisierungsstand ist in fünf lokalen Commits bis `0a9aefa` gesichert.
+Gemini verwendet jetzt `google-genai==2.29.0`; Text, JSON, Suche, Bilder und TTS
+wurden mit einem Luna/high-Worker migriert und vom Hauptagenten geprüft.
+116 Tests bestehen in beiden Python-Umgebungen, Paketprüfung und echte lokale
+WebSocket-Verbindung sind erfolgreich. Die Anwendung wurde neu gestartet.
+Commit-Liste, Nachweise und verbleibende Modellfristen stehen in
+[GEMINI_SDK_MIGRATION.md](GEMINI_SDK_MIGRATION.md).

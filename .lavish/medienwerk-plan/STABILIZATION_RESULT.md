@@ -7,6 +7,12 @@ die tatsächlich ausgeführten Prüfungen fest. P0–P6 wurden mit drei Workern
 Browserabläufe geprüft. Reale Anbieter- und Veröffentlichungsdurchläufe sind
 weiterhin offen. Medienwerk läuft unter http://localhost:3000.
 
+Nachtrag: Der Stabilisierungsstand wurde inzwischen in fünf lokalen Commits
+gesichert und Gemini auf `google-genai==2.29.0` umgestellt. Die vollständige
+Suite besteht jetzt mit 116 Tests in beiden Python-Umgebungen. Details,
+zusätzliche Nachweise und Modellfristen:
+[GEMINI_SDK_MIGRATION.md](GEMINI_SDK_MIGRATION.md).
+
 ## Änderungen
 
 - Einstellungen werden normalisiert, validiert und atomar gespeichert.
@@ -59,7 +65,8 @@ oder Publishing-Aufruf wurde ausgeführt.
   werden durch die Tests im Verzeichnis `tests/` abgedeckt.
 - `tests/test_migration_rollback.py`: 2 Tests bestanden; das Down-/Up-Szenario
   lief gegen temporäre SQLite-Dateien.
-- Der vollständige Aufruf `.venv/bin/python -m pytest -q` bestand mit 91 Tests.
+- Der vollständige Aufruf `.venv/bin/python -m pytest -q` bestand am Ende der
+  Stabilisierung mit 96 Tests; nach der SDK-Umstellung mit 116 Tests.
 - Die kontrollierte Pipelineprüfung führte echte lokale FFmpeg-Erzeugung und
   Muxing aus, registrierte das Ergebnis in SQLite und löste die Medien-ID wieder
   in den Projektordner auf.
@@ -106,14 +113,15 @@ registriert; dafür gibt es einen ausdrücklichen Import mit Vorschau.
 - Echte Gemini-, WaveSpeed-, Pixabay-, VideoFX-Anmeldung, Whisper-Modell-Download
   und YouTube-OAuth-/Upload-Durchläufe wurden nicht durchgeführt. Die simulierten
   Social-Verbindungen sind deaktiviert; TikTok/Instagram melden nicht verfügbar.
-- Der bestehende Gemini-Client verwendet weiterhin das abgekündigte SDK
-  `google.generativeai`. Die SDK-Umstellung und ein echter kontrollierter
-  Anbietercheck sind Folgearbeiten vor einem produktiven KI-Einsatz.
+- Die Gemini-SDK-Umstellung ist abgeschlossen. Ein echter kontrollierter
+  Anbietercheck und die Ablösung auslaufender Modelle bleiben vor einem
+  produktiven KI-Einsatz offen; siehe den oben verlinkten SDK-Bericht.
 - Der lokale Betrieb verwendet einen Prozess, Threadpool und SQLite. Mehrere
   Backend-Prozesse oder öffentlicher Onlinebetrieb sind nicht Bestandteil der Abnahme.
 - Brand-Uploads, Timeline-Bearbeitung und Agentenstudio bleiben als unvollständige
   Bereiche gekennzeichnet. Neue Funktionen, deutsche Oberfläche und Branding
   können nun auf den dokumentierten Verträgen aufgebaut werden.
-- Die Tests laufen unter Python 3.11. Hinweise zu `audioop`, dem alten Gemini-SDK
-  und FastAPI-Startup-Hooks sind dokumentierte Abkündigungen; sie waren keine
-  fehlgeschlagenen Tests. Es fand kein Commit, Push oder Upstream-Merge statt.
+- Die Tests laufen unter Python 3.11. Hinweise zu `audioop` und FastAPI-Startup-
+  Hooks sind dokumentierte Abkündigungen; sie sind keine fehlgeschlagenen Tests.
+  Der Hinweis zum alten Gemini-SDK entfällt nach der Umstellung. Lokale Commits
+  wurden erstellt; es fand kein Push oder Upstream-Merge statt.

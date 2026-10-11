@@ -11,7 +11,7 @@ ANALYSIS = ROOT / '.lavish/medienwerk-analyse'
 DOC = ROOT / 'docs/STABILIZATION_PLAN.md'
 text = DOC.read_text()
 OUT.mkdir(exist_ok=True)
-for source, name in [(DOC,'STABILIZATION_PLAN.md'),(ROOT/'docs/PLATFORM_ANALYSIS.md','PLATFORM_ANALYSIS.md'),(ROOT/'docs/AGENT_WORKFLOW.md','AGENT_WORKFLOW.md'),(ROOT/'docs/STABILIZATION_RESULT.md','STABILIZATION_RESULT.md'),(ROOT/'docs/STABILIZATION_PROGRESS.md','STABILIZATION_PROGRESS.md'),(ROOT/'docs/MODULE_DEVELOPMENT.md','MODULE_DEVELOPMENT.md'),(ROOT/'LOCAL_TESTING.md','LOCAL_TESTING.md'),(ROOT/'docs/SKILLS_INVENTORY.csv','SKILLS_INVENTORY.csv'),(ROOT/'UPSTREAM.md','UPSTREAM.md'),(ANALYSIS/'outfit.woff2','outfit.woff2'),(ANALYSIS/'dashboard.png','dashboard.png')]:
+for source, name in [(DOC,'STABILIZATION_PLAN.md'),(ROOT/'docs/PLATFORM_ANALYSIS.md','PLATFORM_ANALYSIS.md'),(ROOT/'docs/AGENT_WORKFLOW.md','AGENT_WORKFLOW.md'),(ROOT/'docs/STABILIZATION_RESULT.md','STABILIZATION_RESULT.md'),(ROOT/'docs/GEMINI_SDK_MIGRATION.md','GEMINI_SDK_MIGRATION.md'),(ROOT/'docs/STABILIZATION_PROGRESS.md','STABILIZATION_PROGRESS.md'),(ROOT/'docs/MODULE_DEVELOPMENT.md','MODULE_DEVELOPMENT.md'),(ROOT/'LOCAL_TESTING.md','LOCAL_TESTING.md'),(ROOT/'docs/SKILLS_INVENTORY.csv','SKILLS_INVENTORY.csv'),(ROOT/'UPSTREAM.md','UPSTREAM.md'),(ANALYSIS/'outfit.woff2','outfit.woff2'),(ANALYSIS/'dashboard.png','dashboard.png')]:
     shutil.copyfile(source,OUT/name)
 
 css = re.search(r'<style>(.*?)</style>',(ANALYSIS/'index.html').read_text(),re.S).group(1)
