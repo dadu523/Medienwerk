@@ -1,7 +1,9 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Film, Upload, CheckCircle2, Play, MonitorPlay, FileText, Loader2, Tag, Info, Youtube, Instagram, Smartphone } from "lucide-react";
+import { Film, Upload, CheckCircle2, Play, MonitorPlay, FileText, Loader2, Tag, Info, Video as Youtube, Camera as Instagram, Smartphone } from "lucide-react";
+import { apiRequest, errorMessage } from "@/lib/api";
+import { useStartGuard } from "@/lib/jobs";
 
 export default function PublishPage() {
   const [projects, setProjects] = useState<any[]>([]);
@@ -12,22 +14,19 @@ export default function PublishPage() {
   const [description, setDescription] = useState("");
   const [tags, setTags] = useState("");
   const [status, setStatus] = useState("idle");
+  const [error, setError] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
+  const start = useStartGuard();
 
-  const [socialStatus, setSocialStatus] = useState({ youtube: false, tiktok: false, instagram: false });
   const [selectedPlatforms, setSelectedPlatforms] = useState({ youtube: true, tiktok: false, instagram: false });
 
   useEffect(() => {
-    fetch("http://localhost:8008/api/publish/library")
-      .then(res => res.json())
-      .then(data => {
-        setProjects(data.projects || []);
-      })
-      .catch(err => console.error(err));
-      
-    fetch("http://localhost:8008/api/social/status")
-      .then(res => res.json())
-      .then(data => setSocialStatus(data))
-      .catch(err => console.error(err));
+    let live = true;
+    apiRequest<{ projects?: any[] }>("/api/publish/library", { cache: "no-store" })
+      .then((library) => { if (live) setProjects(library.projects || []); })
+      .catch((e) => { if (live) setError(errorMessage(e, "Could not load publish library.")); })
+      .finally(() => { if (live) setLoading(false); });
+    return () => { live = false; };
   }, []);
 
   const selectProject = (proj: any) => {
@@ -42,34 +41,27 @@ export default function PublishPage() {
     e.preventDefault();
     if (!selectedProject) return;
     
-    setStatus("publishing");
-    
+    setError(null);
+    await start.run(async (idempotencyKey) => {
     try {
       const payload = {
-        video_path: selectedProject.video_path,
+        media_id: selectedProject.media_id || selectedProject.id,
         title,
         description,
         tags,
         privacy_status: "private" // Default to private for safety
       };
       
-      const res = await fetch("http://localhost:8008/api/publish/youtube", {
+      const res = await apiRequest("/api/publish/youtube", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload)
+        headers: { "Content-Type": "application/json", "Idempotency-Key": idempotencyKey },
+        body: JSON.stringify({ ...payload, idempotency_key: idempotencyKey })
       });
-      
-      const data = await res.json();
-      if (!res.ok) {
-        alert("Upload Failed: " + (data.detail || "Unknown error"));
-        setStatus("idle");
-      } else {
-        setStatus("published");
-      }
+      setStatus("published"); return res;
     } catch (err) {
-      alert("Failed to connect to API.");
-      setStatus("idle");
+      setError(errorMessage(err, "YouTube upload failed.")); throw err;
     }
+    });
   };
 
   return (
@@ -91,7 +83,7 @@ export default function PublishPage() {
               {projects.length === 0 ? (
                 <div className="h-full flex items-center justify-center text-zinc-500 flex-col gap-4">
                   <Film className="h-12 w-12 opacity-20" />
-                  <p>No generated videos found in workspace.</p>
+                  <p>{loading ? "Loading registered videos..." : "No registered videos found in workspace."}</p>
                 </div>
               ) : (
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -106,13 +98,13 @@ export default function PublishPage() {
                       }`}
                     >
                       <div className="aspect-video bg-black rounded-lg border border-white/10 flex items-center justify-center relative overflow-hidden group">
-                        <Play className="h-8 w-8 text-white/50 group-hover:text-white transition-colors" />
+                        <video src={proj.video_url || `/api/projects/media/${encodeURIComponent(proj.media_id || proj.id)}/download`} className="h-full w-full object-cover" muted preload="metadata" />
                         <div className="absolute bottom-2 right-2 bg-black/80 backdrop-blur-md px-2 py-1 rounded text-[10px] font-bold text-white border border-white/10">
                           READY
                         </div>
                       </div>
                       <div>
-                        <h3 className="text-sm font-bold text-white line-clamp-1">{proj.name}</h3>
+                        <h3 className="text-sm font-bold text-white line-clamp-1">{proj.name || proj.title || "Generated video"}</h3>
                         <p className="text-xs text-zinc-500 mt-1 line-clamp-1">{proj.seo?.title || "No SEO Data"}</p>
                       </div>
                     </div>
@@ -135,7 +127,7 @@ export default function PublishPage() {
               <div className="aspect-video bg-black rounded-xl border border-white/10 overflow-hidden">
                 {/* We use a simple video tag to preview the generated video directly from the backend via the media route we need to make sure exists */}
                 <video 
-                  src={`http://localhost:8008/api/generate/media?path=${encodeURIComponent(selectedProject.video_path)}`}
+                  src={selectedProject.video_url || `/api/projects/media/${encodeURIComponent(selectedProject.media_id || selectedProject.id)}/download`}
                   controls 
                   className="w-full h-full object-contain"
                 />
@@ -188,23 +180,23 @@ export default function PublishPage() {
                       <button type="button" onClick={() => setSelectedPlatforms(p => ({...p, youtube: !p.youtube}))} className={`flex flex-col items-center gap-2 p-3 rounded-lg border ${selectedPlatforms.youtube ? 'bg-red-500/20 border-red-500/50 text-white' : 'bg-white/5 border-white/10 text-zinc-500 hover:bg-white/10'}`}>
                          <Youtube className="h-6 w-6" />
                          <span className="text-[10px] font-bold">YouTube</span>
-                         {socialStatus.youtube ? <span className="text-[8px] text-emerald-400 bg-emerald-500/20 px-1.5 rounded-sm">Connected</span> : <span className="text-[8px] text-zinc-500">Not Connected</span>}
+                         <span className="text-[8px] text-amber-300">OAuth status unverified</span>
                       </button>
-                      <button type="button" onClick={() => setSelectedPlatforms(p => ({...p, tiktok: !p.tiktok}))} className={`flex flex-col items-center gap-2 p-3 rounded-lg border ${selectedPlatforms.tiktok ? 'bg-zinc-800 border-zinc-500 text-white' : 'bg-white/5 border-white/10 text-zinc-500 hover:bg-white/10'}`}>
+                      <button type="button" disabled className="flex flex-col items-center gap-2 p-3 rounded-lg border bg-white/5 border-white/10 text-zinc-600 opacity-50 cursor-not-allowed" title="TikTok publishing is not available">
                          <Smartphone className="h-6 w-6" />
                          <span className="text-[10px] font-bold">TikTok</span>
-                         {socialStatus.tiktok ? <span className="text-[8px] text-emerald-400 bg-emerald-500/20 px-1.5 rounded-sm">Connected</span> : <span className="text-[8px] text-zinc-500">Not Connected</span>}
+                         <span className="text-[8px] text-zinc-500">Unavailable</span>
                       </button>
-                      <button type="button" onClick={() => setSelectedPlatforms(p => ({...p, instagram: !p.instagram}))} className={`flex flex-col items-center gap-2 p-3 rounded-lg border ${selectedPlatforms.instagram ? 'bg-pink-500/20 border-pink-500/50 text-white' : 'bg-white/5 border-white/10 text-zinc-500 hover:bg-white/10'}`}>
+                      <button type="button" disabled className="flex flex-col items-center gap-2 p-3 rounded-lg border bg-white/5 border-white/10 text-zinc-600 opacity-50 cursor-not-allowed" title="Instagram publishing is not available">
                          <Instagram className="h-6 w-6" />
                          <span className="text-[10px] font-bold">Instagram</span>
-                         {socialStatus.instagram ? <span className="text-[8px] text-emerald-400 bg-emerald-500/20 px-1.5 rounded-sm">Connected</span> : <span className="text-[8px] text-zinc-500">Not Connected</span>}
+                         <span className="text-[8px] text-zinc-500">Unavailable</span>
                       </button>
                    </div>
                 </div>
 
                 <div className="pt-4 border-t border-white/10">
-                  {status === "publishing" ? (
+                  {start.starting ? (
                     <button type="button" disabled className="w-full py-3 bg-white/20 text-white font-bold rounded-xl flex items-center justify-center gap-2 cursor-not-allowed">
                       <Loader2 className="h-5 w-5 animate-spin" /> Publishing to selected platforms...
                     </button>
@@ -213,11 +205,12 @@ export default function PublishPage() {
                       <CheckCircle2 className="h-5 w-5" /> Published Successfully!
                     </div>
                   ) : (
-                    <button type="submit" className="w-full py-3 bg-emerald-600 text-white font-bold rounded-xl hover:bg-emerald-700 transition-all shadow-[0_0_15px_rgba(5,150,105,0.3)] hover:shadow-[0_0_25px_rgba(5,150,105,0.5)] flex items-center justify-center gap-2">
-                      <MonitorPlay className="h-5 w-5" /> Auto-Publish
+                      <button type="submit" disabled={!selectedPlatforms.youtube || !selectedProject.media_id} className="w-full py-3 bg-emerald-600 text-white font-bold rounded-xl hover:bg-emerald-700 transition-all shadow-[0_0_15px_rgba(5,150,105,0.3)] hover:shadow-[0_0_25px_rgba(5,150,105,0.5)] disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2">
+                      <MonitorPlay className="h-5 w-5" /> Upload to YouTube (private)
                     </button>
                   )}
-                  <p className="text-center text-[10px] text-zinc-600 mt-3">Requires active OAuth connection for each selected platform.</p>
+                  {error && <p role="alert" className="text-xs text-rose-300 mt-3">{error}</p>}
+                  <p className="text-center text-[10px] text-zinc-600 mt-3">YouTube OAuth must be configured. Uploads are private for review.</p>
                 </div>
               </form>
             </div>

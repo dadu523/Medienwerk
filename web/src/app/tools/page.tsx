@@ -1,93 +1,104 @@
 "use client";
 
 import { useState } from "react";
-import { Type, Crop, Mic, Upload, Download, Loader2, Play } from "lucide-react";
+import { Type, Crop, Mic, Upload, Download, Loader2 } from "lucide-react";
+import { apiRequest, errorMessage } from "@/lib/api";
+import { JobStatus } from "@/components/JobStatus";
+import { jobMediaUrl, useJob, useResumableJobId, useStartGuard } from "@/lib/jobs";
 
 export default function ToolsPage() {
   // Caption State
   const [captionFile, setCaptionFile] = useState<File | null>(null);
   const [captionStyle, setCaptionStyle] = useState("Podcast");
   const [captionLang, setCaptionLang] = useState("English");
-  const [captionStatus, setCaptionStatus] = useState("idle");
-  const [captionResult, setCaptionResult] = useState("");
+  const [captionJobId, setCaptionJobId] = useResumableJobId("tool_caption");
+  const [captionError, setCaptionError] = useState<string | null>(null);
+  const [captionOutput, setCaptionOutput] = useState<string | null>(null);
+  const captionStart = useStartGuard();
+  const captionJob = useJob(captionJobId);
 
   // AR State
   const [arFile, setArFile] = useState<File | null>(null);
   const [targetAr, setTargetAr] = useState("9:16");
-  const [arStatus, setArStatus] = useState("idle");
-  const [arResult, setArResult] = useState("");
+  const [arJobId, setArJobId] = useResumableJobId("tool_ratio");
+  const [arError, setArError] = useState<string | null>(null);
+  const [arOutput, setArOutput] = useState<string | null>(null);
+  const arStart = useStartGuard();
+  const arJob = useJob(arJobId);
 
   // TTS State
   const [ttsText, setTtsText] = useState("");
   const [ttsVoice, setTtsVoice] = useState("Kore");
-  const [ttsStatus, setTtsStatus] = useState("idle");
-  const [ttsResult, setTtsResult] = useState("");
+  const [ttsJobId, setTtsJobId] = useResumableJobId("tool_tts");
+  const [ttsError, setTtsError] = useState<string | null>(null);
+  const [ttsOutput, setTtsOutput] = useState<string | null>(null);
+  const ttsStart = useStartGuard();
+  const ttsJob = useJob(ttsJobId);
 
   const handleCaption = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!captionFile) return;
-    setCaptionStatus("loading");
-    
+    setCaptionError(null);
+    await captionStart.run(async (key) => {
     const formData = new FormData();
     formData.append("file", captionFile);
     formData.append("style", captionStyle);
     formData.append("language", captionLang);
+    formData.append("idempotency_key", key);
 
     try {
-      const res = await fetch("http://localhost:8008/api/tools/caption", {
+      const data = await apiRequest<{ job_id: string }>("/api/tools/caption", {
         method: "POST",
-        body: formData
+        headers: { "Idempotency-Key": key }, body: formData
       });
-      const data = await res.json();
-      setCaptionResult(data.path.replace(/\\/g, '/').split('workspace/')[1]);
-      setCaptionStatus("done");
+      if (!data.job_id) throw new Error("The server did not return a job ID.");
+      setCaptionJobId(data.job_id); return data;
     } catch (e) {
-      alert("Caption generation failed.");
-      setCaptionStatus("idle");
+      setCaptionError(errorMessage(e, "Caption job could not start.")); throw e;
     }
+    });
   };
 
   const handleConvert = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!arFile) return;
-    setArStatus("loading");
-    
+    setArError(null);
+    await arStart.run(async (key) => {
     const formData = new FormData();
     formData.append("file", arFile);
     formData.append("target_ar", targetAr);
+    formData.append("idempotency_key", key);
 
     try {
-      const res = await fetch("http://localhost:8008/api/tools/convert", {
+      const data = await apiRequest<{ job_id: string }>("/api/tools/convert", {
         method: "POST",
-        body: formData
+        headers: { "Idempotency-Key": key }, body: formData
       });
-      const data = await res.json();
-      setArResult(data.path.replace(/\\/g, '/').split('workspace/')[1]);
-      setArStatus("done");
+      if (!data.job_id) throw new Error("The server did not return a job ID.");
+      setArJobId(data.job_id); return data;
     } catch (e) {
-      alert("Conversion failed.");
-      setArStatus("idle");
+      setArError(errorMessage(e, "Conversion job could not start.")); throw e;
     }
+    });
   };
 
   const handleTTS = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!ttsText) return;
-    setTtsStatus("loading");
-
+    setTtsError(null);
+    await ttsStart.run(async (key) => {
     try {
-      const res = await fetch("http://localhost:8008/api/tools/tts", {
+      const data = await apiRequest<{ job_id: string }>("/api/tools/tts", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ text: ttsText, voice: ttsVoice })
+        headers: { "Content-Type": "application/json", "Idempotency-Key": key },
+        body: JSON.stringify({ text: ttsText, voice: ttsVoice, idempotency_key: key })
       });
-      const data = await res.json();
-      setTtsResult(data.path.replace(/\\/g, '/').split('workspace/')[1]);
-      setTtsStatus("done");
+      if (!data.job_id) throw new Error("The server did not return a job ID.");
+      setTtsJobId(data.job_id); return data;
     } catch (e) {
-      alert("TTS generation failed.");
-      setTtsStatus("idle");
+      setTtsError(errorMessage(e, "TTS job could not start.")); throw e;
     }
+    });
   };
 
   return (
@@ -124,8 +135,8 @@ export default function ToolsPage() {
               </div>
               
               <div>
-                <label className="block text-xs font-bold text-zinc-500 mb-2 uppercase tracking-wider">Style</label>
-                <select value={captionStyle} onChange={e => setCaptionStyle(e.target.value)} className="modern-select">
+                <label htmlFor="caption-style" className="block text-xs font-bold text-zinc-500 mb-2 uppercase tracking-wider">Style</label>
+                <select id="caption-style" value={captionStyle} onChange={e => setCaptionStyle(e.target.value)} className="modern-select">
                   <option className="bg-black" value="Hormozi">Hormozi Style</option>
                   <option className="bg-black" value="Podcast">Podcast Style</option>
                 </select>
@@ -133,19 +144,18 @@ export default function ToolsPage() {
             </div>
 
             <div className="pt-4 border-t border-white/10 mt-auto">
-              {captionStatus === "loading" ? (
+              {captionStart.starting ? (
                 <button disabled className="w-full py-3 bg-white/20 text-white font-bold rounded-xl flex justify-center items-center gap-2">
                   <Loader2 className="h-5 w-5 animate-spin" /> Processing...
                 </button>
-              ) : captionStatus === "done" ? (
-                <a href={`http://localhost:8008/api/generate/media?path=${encodeURIComponent(captionResult)}`} download className="w-full py-3 bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 font-bold rounded-xl flex justify-center items-center gap-2 hover:bg-emerald-500/30 transition-all">
-                  <Download className="h-5 w-5" /> Download Result
-                </a>
+              ) : captionJobId ? (
+                <div className="space-y-3"><JobStatus job={captionJob.job} logs={captionJob.logs} error={captionError || captionJob.error} connection={captionJob.connection} onClear={() => { const output = jobMediaUrl(captionJob.job); if (output) setCaptionOutput(output); setCaptionJobId(""); }} />
+                  {captionJob.job?.status === "completed" && jobMediaUrl(captionJob.job) && <a href={jobMediaUrl(captionJob.job)!} download className="btn-primary inline-flex"><Download className="h-5 w-5" /> Download Result</a>}</div>
               ) : (
-                <button type="submit" className="w-full py-3 bg-white text-black font-bold rounded-xl hover:bg-zinc-200 transition-all shadow-[0_0_15px_rgba(255,255,255,0.2)]">
-                  Generate Captions
-                </button>
+                <div className="space-y-3">{captionOutput && <a href={captionOutput} download className="btn-primary inline-flex"><Download className="h-5 w-5" /> Download last result</a>}
+                  <button type="submit" className="w-full py-3 bg-white text-black font-bold rounded-xl hover:bg-zinc-200 transition-all shadow-[0_0_15px_rgba(255,255,255,0.2)]">Generate Captions</button></div>
               )}
+              {captionError && !captionJobId && <p role="alert" className="mt-2 text-xs text-rose-300">{captionError}</p>}
             </div>
           </form>
         </div>
@@ -175,8 +185,8 @@ export default function ToolsPage() {
               </div>
               
               <div>
-                <label className="block text-xs font-bold text-zinc-500 mb-2 uppercase tracking-wider">Target Ratio</label>
-                <select value={targetAr} onChange={e => setTargetAr(e.target.value)} className="modern-select">
+                <label htmlFor="target-ratio" className="block text-xs font-bold text-zinc-500 mb-2 uppercase tracking-wider">Target Ratio</label>
+                <select id="target-ratio" value={targetAr} onChange={e => setTargetAr(e.target.value)} className="modern-select">
                   <option className="bg-black" value="9:16">9:16 (TikTok / Shorts)</option>
                   <option className="bg-black" value="16:9">16:9 (YouTube)</option>
                   <option className="bg-black" value="1:1">1:1 (Instagram)</option>
@@ -185,19 +195,18 @@ export default function ToolsPage() {
             </div>
 
             <div className="pt-4 border-t border-white/10 mt-auto">
-              {arStatus === "loading" ? (
+              {arStart.starting ? (
                 <button disabled className="w-full py-3 bg-white/20 text-white font-bold rounded-xl flex justify-center items-center gap-2">
                   <Loader2 className="h-5 w-5 animate-spin" /> Processing...
                 </button>
-              ) : arStatus === "done" ? (
-                <a href={`http://localhost:8008/api/generate/media?path=${encodeURIComponent(arResult)}`} download className="w-full py-3 bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 font-bold rounded-xl flex justify-center items-center gap-2 hover:bg-emerald-500/30 transition-all">
-                  <Download className="h-5 w-5" /> Download Result
-                </a>
+              ) : arJobId ? (
+                <div className="space-y-3"><JobStatus job={arJob.job} logs={arJob.logs} error={arError || arJob.error} connection={arJob.connection} onClear={() => { const output = jobMediaUrl(arJob.job); if (output) setArOutput(output); setArJobId(""); }} />
+                  {arJob.job?.status === "completed" && jobMediaUrl(arJob.job) && <a href={jobMediaUrl(arJob.job)!} download className="btn-primary inline-flex"><Download className="h-5 w-5" /> Download Result</a>}</div>
               ) : (
-                <button type="submit" className="w-full py-3 bg-white text-black font-bold rounded-xl hover:bg-zinc-200 transition-all shadow-[0_0_15px_rgba(255,255,255,0.2)]">
-                  Convert Ratio
-                </button>
+                <div className="space-y-3">{arOutput && <a href={arOutput} download className="btn-primary inline-flex"><Download className="h-5 w-5" /> Download last result</a>}
+                  <button type="submit" className="w-full py-3 bg-white text-black font-bold rounded-xl hover:bg-zinc-200 transition-all shadow-[0_0_15px_rgba(255,255,255,0.2)]">Convert Ratio</button></div>
               )}
+              {arError && !arJobId && <p role="alert" className="mt-2 text-xs text-rose-300">{arError}</p>}
             </div>
           </form>
         </div>
@@ -217,8 +226,9 @@ export default function ToolsPage() {
           <form onSubmit={handleTTS} className="space-y-4 flex-1 flex flex-col">
             <div className="flex-1 space-y-4">
               <div>
-                <label className="block text-xs font-bold text-zinc-500 mb-2 uppercase tracking-wider">Script</label>
+                <label htmlFor="tts-script" className="block text-xs font-bold text-zinc-500 mb-2 uppercase tracking-wider">Script</label>
                 <textarea 
+                  id="tts-script"
                   value={ttsText} 
                   onChange={e => setTtsText(e.target.value)} 
                   className="modern-input min-h-[120px] resize-y" 
@@ -228,8 +238,8 @@ export default function ToolsPage() {
               </div>
               
               <div>
-                <label className="block text-xs font-bold text-zinc-500 mb-2 uppercase tracking-wider">Voice Profile</label>
-                <select value={ttsVoice} onChange={e => setTtsVoice(e.target.value)} className="modern-select">
+                <label htmlFor="tts-voice" className="block text-xs font-bold text-zinc-500 mb-2 uppercase tracking-wider">Voice Profile</label>
+                <select id="tts-voice" value={ttsVoice} onChange={e => setTtsVoice(e.target.value)} className="modern-select">
                   <option className="bg-black" value="Kore">Kore (Standard Male)</option>
                   <option className="bg-black" value="Aoede">Aoede (Standard Female)</option>
                   <option className="bg-black" value="Charon">Charon (Deep/Gritty Male)</option>
@@ -239,22 +249,21 @@ export default function ToolsPage() {
             </div>
 
             <div className="pt-4 border-t border-white/10 mt-auto">
-              {ttsStatus === "loading" ? (
+              {ttsStart.starting ? (
                 <button disabled className="w-full py-3 bg-white/20 text-white font-bold rounded-xl flex justify-center items-center gap-2">
                   <Loader2 className="h-5 w-5 animate-spin" /> Generating...
                 </button>
-              ) : ttsStatus === "done" ? (
+              ) : ttsJobId ? (
                 <div className="space-y-3">
-                  <audio controls className="w-full h-10" src={`http://localhost:8008/api/generate/media?path=${encodeURIComponent(ttsResult)}`} />
-                  <a href={`http://localhost:8008/api/generate/media?path=${encodeURIComponent(ttsResult)}`} download className="w-full py-2 bg-white/10 text-white border border-white/20 text-sm font-bold rounded-lg flex justify-center items-center gap-2 hover:bg-white/20 transition-all">
-                    <Download className="h-4 w-4" /> Download MP3
-                  </a>
+                  <JobStatus job={ttsJob.job} logs={ttsJob.logs} error={ttsError || ttsJob.error} connection={ttsJob.connection} onClear={() => { const output = jobMediaUrl(ttsJob.job); if (output) setTtsOutput(output); setTtsJobId(""); }} />
+                  {ttsJob.job?.status === "completed" && jobMediaUrl(ttsJob.job) && <><audio controls className="w-full h-10" src={jobMediaUrl(ttsJob.job)!} />
+                  <a href={jobMediaUrl(ttsJob.job)!} download className="w-full py-2 bg-white/10 text-white border border-white/20 text-sm font-bold rounded-lg flex justify-center items-center gap-2 hover:bg-white/20 transition-all"><Download className="h-4 w-4" /> Download audio</a></>}
                 </div>
               ) : (
-                <button type="submit" className="w-full py-3 bg-white text-black font-bold rounded-xl hover:bg-zinc-200 transition-all shadow-[0_0_15px_rgba(255,255,255,0.2)]">
-                  Generate Audio
-                </button>
+                <div className="space-y-3">{ttsOutput && <><audio controls className="w-full h-10" src={ttsOutput} /><a href={ttsOutput} download className="w-full py-2 bg-white/10 text-white border border-white/20 text-sm font-bold rounded-lg flex justify-center items-center gap-2 hover:bg-white/20 transition-all"><Download className="h-4 w-4" /> Download last audio</a></>}
+                  <button type="submit" className="w-full py-3 bg-white text-black font-bold rounded-xl hover:bg-zinc-200 transition-all shadow-[0_0_15px_rgba(255,255,255,0.2)]">Generate Audio</button></div>
               )}
+              {ttsError && !ttsJobId && <p role="alert" className="mt-2 text-xs text-rose-300">{ttsError}</p>}
             </div>
           </form>
         </div>

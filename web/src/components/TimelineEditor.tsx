@@ -1,7 +1,7 @@
 "use client";
 
-import React, { useState } from "react";
-import { Play, Pause, FastForward, Rewind, Scissors, Type, Image as ImageIcon } from "lucide-react";
+import React from "react";
+import { Scissors, Type, Image as ImageIcon } from "lucide-react";
 
 interface TimelineEditorProps {
   clip: any;
@@ -9,14 +9,9 @@ interface TimelineEditorProps {
   onCancel: () => void;
 }
 
-export default function TimelineEditor({ clip, onSave, onCancel }: TimelineEditorProps) {
-  const [isPlaying, setIsPlaying] = useState(false);
-  const [currentTime, setCurrentTime] = useState(clip?.start || 0);
-  
-  // These would ideally be draggable handles, simulating state here
-  const [startHandle, setStartHandle] = useState(clip?.start || 0);
-  const [endHandle, setEndHandle] = useState(clip?.end || 30);
-
+export default function TimelineEditor({ clip, onCancel }: TimelineEditorProps) {
+  const startHandle = clip?.start || 0;
+  const endHandle = clip?.end || 30;
   const duration = endHandle - startHandle;
 
   return (
@@ -31,12 +26,7 @@ export default function TimelineEditor({ clip, onSave, onCancel }: TimelineEdito
           <button onClick={onCancel} className="px-4 py-1.5 text-xs font-bold text-zinc-400 hover:text-white transition-colors">
             Cancel
           </button>
-          <button 
-            onClick={() => onSave({ ...clip, start: startHandle, end: endHandle })} 
-            className="px-4 py-1.5 text-xs font-bold bg-emerald-500/20 text-emerald-400 rounded-md border border-emerald-500/30 hover:bg-emerald-500/30 transition-all"
-          >
-            Save Cuts
-          </button>
+          <button disabled title="Editing is preview only and does not change rendered output" className="px-4 py-1.5 text-xs font-bold bg-white/5 text-zinc-500 rounded-md border border-white/10 cursor-not-allowed">Save cuts unavailable</button>
         </div>
       </div>
 
@@ -47,20 +37,13 @@ export default function TimelineEditor({ clip, onSave, onCancel }: TimelineEdito
            <div className="text-zinc-600 text-xs text-center p-4">
              <p className="font-bold text-white mb-2">Video Preview</p>
              <p>Start: {startHandle.toFixed(1)}s | End: {endHandle.toFixed(1)}s</p>
-             <p className="text-[10px] mt-4 opacity-50">Real video element would bind to these timestamps</p>
+             <p className="text-[10px] mt-4 opacity-50">Preview only. Timeline edits are not connected to rendered output.</p>
            </div>
         </div>
         
         {/* Controls */}
         <div className="flex items-center gap-6 mt-6">
-          <button className="text-zinc-400 hover:text-white transition-colors"><Rewind className="h-5 w-5" /></button>
-          <button 
-            onClick={() => setIsPlaying(!isPlaying)}
-            className="h-12 w-12 rounded-full bg-white text-black flex items-center justify-center hover:scale-105 transition-transform"
-          >
-            {isPlaying ? <Pause className="h-5 w-5 fill-black" /> : <Play className="h-5 w-5 fill-black ml-1" />}
-          </button>
-          <button className="text-zinc-400 hover:text-white transition-colors"><FastForward className="h-5 w-5" /></button>
+          <p className="text-xs text-amber-300">Playback controls are not connected.</p>
         </div>
       </div>
 

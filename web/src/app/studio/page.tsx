@@ -1,31 +1,16 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Play, Square, Sparkles, CheckCircle2, AlertCircle, Loader2, Globe2, Music, Captions, ShieldCheck, Film, Settings, Zap, Ghost, Rocket, Landmark, ShoppingBag } from "lucide-react";
+import { Play, Square, Film, Settings, Zap, Ghost, Rocket, Landmark, ShoppingBag } from "lucide-react";
 import { TabSelect } from "@/components/TabSelect";
 import { ToggleSwitch } from "@/components/ToggleSwitch";
 import { useConfig } from "@/context/ConfigContext";
-
-const PIPELINE_STEPS = [
-  "Deep Research",
-  "Fact Check Research",
-  "Revise Research",
-  "Podcast Script",
-  "Generate Thumbnail",
-  "Analyze Tone",
-  "Audio (TTS)",
-  "Generate Timed Images",
-  "Video Generation",
-  "Add Background Music",
-  "Create Final Video",
-  "Generate SEO Metadata",
-  "Generate Timestamps",
-  "Generate Snippets"
-];
+import { apiRequest, errorMessage } from "@/lib/api";
+import { JobStatus } from "@/components/JobStatus";
+import { jobMediaUrl, useJob, useResumableJobId, useStartGuard } from "@/lib/jobs";
 
 export default function CreatorStudio() {
   const [topic, setTopic] = useState("");
-  const [startStep, setStartStep] = useState(PIPELINE_STEPS[0]);
   const [quickPreset, setQuickPreset] = useState("Custom");
   
   const [contentStyle, setContentStyle] = useState("Documentary");
@@ -50,12 +35,14 @@ export default function CreatorStudio() {
   const [genTimestamps, setGenTimestamps] = useState(false);
   const [genSnippets, setGenSnippets] = useState(false);
 
-  const [status, setStatus] = useState("idle");
-  const [jobId, setJobId] = useState("");
-  const [progress, setProgress] = useState(0);
-  const [currentStep, setCurrentStep] = useState("Waiting to start...");
-  const [logs, setLogs] = useState<string[]>([]);
-  const [finalVideo, setFinalVideo] = useState("");
+  const [jobId, setJobId] = useResumableJobId("quick_creator");
+  const [startError, setStartError] = useState<string | null>(null);
+  const { starting, run } = useStartGuard();
+  const jobState = useJob(jobId);
+  const job = jobState.job;
+  const status = starting ? "starting" : job?.status || (startError ? "error" : "idle");
+  const busy = starting || status === "queued" || status === "running" || status === "cancel_requested";
+  const finalVideo = jobMediaUrl(job);
 
   const { config, status: contextStatus } = useConfig();
   const [hasInitialized, setHasInitialized] = useState(false);
@@ -72,7 +59,7 @@ export default function CreatorStudio() {
       setVideoCount(config.VIDEO_CLIP_COUNT || 1);
       setBgMusic(config.ADD_MUSIC ?? true);
       setAutoCaptions(config.CAPTION_ENABLED ?? true);
-      setFactCheck(config.FACT_CHECK ?? false);
+      setFactCheck(config.FACT_CHECK_ENABLED ?? false);
       setGenThumbnail(config.GENERATE_THUMBNAIL ?? false);
       setGenSeo(config.GENERATE_METADATA ?? false);
       setGenTimestamps(config.GENERATE_TIMESTAMPS ?? false);
@@ -101,7 +88,7 @@ export default function CreatorStudio() {
       setAudioEngine("Gemini API");
       setVoice("Kore");
       setAspectRatio("9:16");
-      setOmnichannel(true);
+      setOmnichannel(false);
       setGenSeo(true);
     } else if (preset === "Scary Story") {
       setContentStyle("Story");
@@ -116,7 +103,7 @@ export default function CreatorStudio() {
       setAspectRatio("9:16");
       setBgMusic(true);
       setAutoCaptions(true);
-      setOmnichannel(true);
+      setOmnichannel(false);
     } else if (preset === "Historical Deep Dive") {
       setContentStyle("Documentary");
       setStyle("Cinematic Documentary");
@@ -128,93 +115,46 @@ export default function CreatorStudio() {
       setStyle("TikTok Viral");
       setVoice("Kore");
       setAspectRatio("1:1");
-      setOmnichannel(true);
+      setOmnichannel(false);
     }
   };
 
   const handleGenerate = async (e: React.FormEvent) => {
     e.preventDefault();
-    setStatus("starting");
-    setLogs(["Initializing Next-Gen Pipeline..."]);
-    
+    setStartError(null);
+    await run(async (idempotencyKey) => {
     try {
       const payload = {
-        topic, start_point: startStep, content_style: contentStyle,
+        topic, start_point: "Deep Research", content_style: contentStyle,
         style, voice: audioEngine === "Gemini API" ? voice : elevenVoice, 
         audio_engine: audioEngine, video_engine: videoEngine, aspect_ratio: aspectRatio, bg_mode: bgMode,
         image_count: imageCount, video_count: videoCount,
         omnichannel, bg_music: bgMusic, auto_captions: autoCaptions,
         fact_check: factCheck, generate_thumbnail: genThumbnail,
         generate_seo: genSeo, generate_timestamps: genTimestamps,
-        generate_snippets: genSnippets, script_length: scriptLength
+        generate_snippets: genSnippets, script_length: scriptLength, idempotency_key: idempotencyKey
       };
-
-      const res = await fetch("http://localhost:8008/api/generate/quick", {
+      const data = await apiRequest<{ job_id: string }>("/api/generate/quick", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload)
+        headers: { "Content-Type": "application/json", "Idempotency-Key": idempotencyKey },
+        body: JSON.stringify(payload),
       });
-      const data = await res.json();
+      if (!data.job_id) throw new Error("The server did not return a job ID.");
       setJobId(data.job_id);
-      setStatus("running");
+      return data;
     } catch (err) {
-      setStatus("error");
-      setLogs(prev => [...prev, "Failed to connect to API."]);
+      setStartError(errorMessage(err, "Could not start video generation."));
+      return Promise.reject(err);
     }
+    });
   };
 
   const handleCancel = async () => {
     if (jobId) {
-      await fetch(`http://localhost:8008/api/cancel/${jobId}`, { method: "POST" });
+      try { await apiRequest(`/api/generate/cancel/${encodeURIComponent(jobId)}`, { method: "POST" }); }
+      catch (error) { setStartError(errorMessage(error, "Could not cancel this job.")); }
     }
-    setStatus("idle");
-    setLogs(prev => [...prev, "Job cancelled by user."]);
   };
-
-  useEffect(() => {
-    let ws: WebSocket;
-    
-    if (status === "running" && jobId) {
-      ws = new WebSocket(`ws://localhost:8008/api/generate/ws/${jobId}`);
-      
-      ws.onmessage = (event) => {
-        try {
-          const msg = JSON.parse(event.data);
-          
-          if (msg.type === "full_state") {
-            const data = msg.data;
-            if (data.progress) setProgress(data.progress);
-            if (data.step) setCurrentStep(data.step);
-            if (data.logs) setLogs(data.logs);
-          } else if (msg.type === "update") {
-            const data = msg.data;
-            if (data.status === "completed") {
-              setStatus("completed");
-              setFinalVideo(data.result || "");
-              ws.close();
-            } else if (data.status === "failed") {
-              setStatus("error");
-              ws.close();
-            }
-            if (data.progress) setProgress(data.progress);
-            if (data.step) setCurrentStep(data.step);
-          } else if (msg.type === "log") {
-            setLogs(prev => [...prev, msg.data]);
-          }
-        } catch (e) {
-          console.error("Failed to parse websocket message", e);
-        }
-      };
-
-      ws.onerror = (error) => {
-        console.error("WebSocket error", error);
-      };
-    }
-    
-    return () => {
-      if (ws) ws.close();
-    };
-  }, [status, jobId]);
 
   return (
     <div className="max-w-7xl mx-auto space-y-6 animate-in fade-in duration-500">
@@ -261,8 +201,8 @@ export default function CreatorStudio() {
                 <div>
                   <label className="block text-xs font-bold text-zinc-500 mb-2 uppercase tracking-wider">Start From Step</label>
                   <div className="relative">
-                    <select value={startStep} onChange={e => setStartStep(e.target.value)} className="modern-select">
-                      {PIPELINE_STEPS.map(step => <option key={step} value={step} className="bg-black">{step}</option>)}
+                    <select value="Deep Research" disabled className="modern-select">
+                      <option value="Deep Research" className="bg-black">Deep Research (only supported start point)</option>
                     </select>
                   </div>
                 </div>
@@ -270,7 +210,7 @@ export default function CreatorStudio() {
 
               <div>
                 <label className="block text-xs font-bold text-zinc-500 mb-2 uppercase tracking-wider">Video Topic</label>
-                <input type="text" placeholder="e.g. History of Rome" value={topic} onChange={(e) => setTopic(e.target.value)} required disabled={status === "running"} className="modern-input" />
+                <input type="text" placeholder="e.g. History of Rome" value={topic} onChange={(e) => setTopic(e.target.value)} required disabled={busy} className="modern-input" />
               </div>
             </div>
 
@@ -338,7 +278,7 @@ export default function CreatorStudio() {
             <div className="glass-card p-6">
               <h3 className="text-xs font-bold text-white tracking-widest uppercase border-b border-white/10 pb-3 mb-6">Advanced Options</h3>
               <div className="grid grid-cols-2 gap-y-6 gap-x-4">
-                <ToggleSwitch checked={omnichannel} onChange={setOmnichannel} label="Omnichannel" />
+                <div className="opacity-50"><ToggleSwitch checked={false} onChange={() => setOmnichannel(false)} label="Omnichannel (unavailable)" /></div>
                 <ToggleSwitch checked={bgMusic} onChange={setBgMusic} label="Background Music" />
                 <ToggleSwitch checked={autoCaptions} onChange={setAutoCaptions} label="Auto Captions" />
                 <ToggleSwitch checked={genSeo} onChange={setGenSeo} label="SEO Metadata" />
@@ -346,12 +286,12 @@ export default function CreatorStudio() {
             </div>
 
             <div className="pt-2">
-              {status === "running" || status === "starting" ? (
+              {busy ? (
                 <button type="button" onClick={handleCancel} className="w-full py-3.5 bg-rose-500/10 border border-rose-500/30 text-rose-400 font-bold rounded-xl hover:bg-rose-500/20 transition-all flex items-center justify-center gap-2">
                   <Square className="h-4 w-4 fill-current" /> Abort Generation
                 </button>
               ) : (
-                <button type="submit" className="btn-primary">
+                <button type="submit" disabled={busy || !topic.trim()} className="btn-primary disabled:opacity-50">
                   <Play className="h-4 w-4 fill-current" /> Generate Video
                 </button>
               )}
@@ -368,7 +308,7 @@ export default function CreatorStudio() {
               </span>
             </h2>
 
-            {status === "idle" && (
+            {!jobId && !startError && !starting && (
               <div className="my-auto text-center space-y-4 py-12">
                 <div className="w-full max-w-lg mx-auto aspect-video bg-black border border-white/10 rounded-xl flex items-center justify-center relative overflow-hidden group">
                   <div className="p-5 bg-white/5 rounded-full text-zinc-600 group-hover:text-white transition-colors border border-white/5">
@@ -379,39 +319,10 @@ export default function CreatorStudio() {
               </div>
             )}
 
-            {(status === "starting" || status === "running") && (
-              <div className="my-auto space-y-6 py-8">
-                <div className="flex items-center gap-4">
-                  <Loader2 className="h-7 w-7 text-white animate-spin" />
-                  <div>
-                    <h3 className="text-white font-bold text-base">{currentStep}</h3>
-                    <p className="text-xs text-zinc-400 font-medium">Processing background task...</p>
-                  </div>
-                </div>
-
-                <div className="space-y-2">
-                  <div className="flex justify-between text-xs font-bold tracking-wider uppercase">
-                    <span className="text-zinc-500">Progress</span>
-                    <span className="text-white">{Math.round(progress)}%</span>
-                  </div>
-                  <div className="h-2 w-full bg-black rounded-full overflow-hidden border border-white/10">
-                    <div className="h-full bg-white transition-all duration-300" style={{ width: `${progress}%` }} />
-                  </div>
-                </div>
-
-                <div className="mt-4 bg-black border border-white/10 rounded-xl p-4 h-48 overflow-y-auto font-mono text-xs text-zinc-400 space-y-1.5 shadow-inner">
-                  {logs.length === 0 ? <div className="text-zinc-600 italic">Waiting for logs...</div> : logs.map((log, idx) => <div key={idx} className="break-words leading-relaxed">{log}</div>)}
-                </div>
-              </div>
-            )}
-
-            {status === "completed" && (
-              <div className="my-auto space-y-4 py-4 text-center">
-                <CheckCircle2 className="h-12 w-12 text-white mx-auto" />
-                <h3 className="text-xl font-bold text-white">Video Generated Successfully!</h3>
-                <p className="text-zinc-400">Your video has been saved locally.</p>
-              </div>
-            )}
+            {jobId && <div className="space-y-5"><JobStatus job={job} logs={jobState.logs} error={startError || jobState.error} connection={jobState.connection} onClear={() => setJobId("")} />
+              {finalVideo && <div className="space-y-3"><video controls className="w-full rounded-xl" src={finalVideo} /><a className="btn-primary inline-flex" href={finalVideo} download>Download video</a></div>}
+            </div>}
+            {startError && !jobId && <p role="alert" className="text-sm text-rose-300">{startError}</p>}
           </div>
         </div>
       </div>

@@ -6,7 +6,7 @@ import { TabSelect } from "@/components/TabSelect";
 import { useConfig } from "@/context/ConfigContext";
 
 export default function SettingsPage() {
-  const { config, updateConfig, saveConfig, status: contextStatus } = useConfig();
+  const { config, updateConfig, saveConfig, status: contextStatus, error, secretDrafts, updateSecret, clearSecret } = useConfig();
   
   if (contextStatus === "loading") {
     return (
@@ -36,22 +36,16 @@ export default function SettingsPage() {
           </div>
           
           <div className="space-y-4">
-            <div>
-              <label className="block text-xs font-medium text-zinc-500 mb-2 uppercase tracking-wider">Gemini API Key</label>
-              <input type="password" value={config.GEMINI_API_KEY || ""} onChange={e => updateConfig("GEMINI_API_KEY", e.target.value)} className="modern-input" placeholder="AI Studio Key..." />
-            </div>
-            <div>
-              <label className="block text-xs font-medium text-zinc-500 mb-2 uppercase tracking-wider">WaveSpeed API Key</label>
-              <input type="password" value={config.WAVESPEED_API_KEY || ""} onChange={e => updateConfig("WAVESPEED_API_KEY", e.target.value)} className="modern-input" placeholder="Video gen key..." />
-            </div>
-            <div>
-              <label className="block text-xs font-medium text-zinc-500 mb-2 uppercase tracking-wider">Serper API Key</label>
-              <input type="password" value={config.SERPER_API_KEY || ""} onChange={e => updateConfig("SERPER_API_KEY", e.target.value)} className="modern-input" placeholder="Search API key..." />
-            </div>
-            <div>
-              <label className="block text-xs font-medium text-zinc-500 mb-2 uppercase tracking-wider">Pixabay API Key</label>
-              <input type="password" value={config.PIXABAY_API_KEY || ""} onChange={e => updateConfig("PIXABAY_API_KEY", e.target.value)} className="modern-input" placeholder="For B-Roll..." />
-            </div>
+            {[["GEMINI_API_KEY", "Gemini API Key", "AI Studio Key..."], ["WAVESPEED_API_KEY", "WaveSpeed API Key", "Video generation key..."], ["SERPER_API_KEY", "Serper API Key (unsupported)", "Not currently used by production workflows"], ["PIXABAY_API_KEY", "Pixabay API Key", "For stock footage..."]].map(([key, label, placeholder]) => (
+              <div key={key}>
+                <label className="block text-xs font-medium text-zinc-500 mb-2 uppercase tracking-wider">{label}</label>
+                <div className="flex gap-2">
+                  <input type="password" value={secretDrafts[key] || ""} onChange={e => updateSecret(key, e.target.value)} className="modern-input" placeholder={config[`${key}_CONFIGURED`] ? "Key stored (leave blank to keep)" : placeholder} autoComplete="new-password" />
+                  {config[`${key}_CONFIGURED`] && <span className="self-center whitespace-nowrap text-xs text-emerald-400">Hinterlegt</span>}
+                  {config[`${key}_CONFIGURED`] && <button type="button" onClick={() => clearSecret(key)} className="rounded-lg border border-rose-500/30 px-3 text-xs text-rose-300">Clear</button>}
+                </div>
+              </div>
+            ))}
           </div>
         </div>
 
@@ -187,6 +181,7 @@ export default function SettingsPage() {
           </div>
         </div>
 
+        {error && <p role="alert" className="text-sm text-rose-300">{error}</p>}
         <div className="flex justify-end pt-4 border-t border-white/5 mt-8">
           <button type="submit" className="btn-primary !w-auto px-10">
             <Save className="h-4 w-4" />

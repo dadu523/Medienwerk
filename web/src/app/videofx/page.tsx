@@ -1,95 +1,64 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { Play, Loader2, Maximize, AlertCircle, StopCircle, LogIn, SlidersHorizontal } from "lucide-react";
+import { apiRequest, errorMessage } from "@/lib/api";
+import { useJob, useResumableJobId, useStartGuard, jobMediaUrl } from "@/lib/jobs";
+import { JobStatus } from "@/components/JobStatus";
 
 export default function VideoFXFlowPage() {
   const [prompt, setPrompt] = useState("");
-  const [status, setStatus] = useState<"idle" | "running" | "completed" | "error">("idle");
-  const [jobId, setJobId] = useState<string | null>(null);
-  const [logs, setLogs] = useState<string[]>([]);
-  const [browserFrame, setBrowserFrame] = useState<string | null>(null);
-  const [videoResult, setVideoResult] = useState<string | null>(null);
+  const [jobId, setJobId] = useResumableJobId("videofx");
+  const [startError, setStartError] = useState<string | null>(null);
+  const start = useStartGuard();
+  const jobState = useJob(jobId);
+  const job = jobState.job;
+  const status = start.starting ? "running" : job?.status === "completed" ? "completed" : job?.status === "failed" || startError ? "error" : job?.status || "idle";
+  const busy = start.starting || status === "queued" || status === "running" || status === "cancel_requested";
+  const browserFrame = jobState.browserFrame;
+  const videoResult = jobMediaUrl(job);
   const [style, setStyle] = useState("Cinematic");
   const [aspectRatio, setAspectRatio] = useState("16:9");
-
-  useEffect(() => {
-    let ws: WebSocket;
-    if (jobId && status === "running") {
-      ws = new WebSocket(`ws://localhost:8008/api/videofx/ws/${jobId}`);
-      
-      ws.onmessage = (event) => {
-        try {
-          const msg = JSON.parse(event.data);
-          if (msg.type === "status") {
-            const data = msg.data;
-            if (data.status === "completed") {
-              setStatus("completed");
-              if (data.result) setVideoResult(data.result);
-              ws.close();
-            } else if (data.status === "failed") {
-              setStatus("error");
-              setLogs(prev => [...prev, `Error: ${data.error}`]);
-              ws.close();
-            }
-          } else if (msg.type === "log") {
-            setLogs(prev => [...prev, msg.data]);
-          } else if (msg.type === "browser_frame") {
-            setBrowserFrame(msg.data);
-          }
-        } catch (e) {
-          console.error("Failed to parse websocket message", e);
-        }
-      };
-    }
-    
-    return () => {
-      if (ws) ws.close();
-    };
-  }, [status, jobId]);
 
   const handleGenerate = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!prompt.trim()) return;
     
-    setStatus("running");
-    setLogs(["Starting VideoFX automation..."]);
-    setBrowserFrame(null);
-    setVideoResult(null);
+    setStartError(null);
     
     const finalPrompt = `${prompt}, ${style} style, ${aspectRatio === "16:9" ? "horizontal 16:9" : aspectRatio === "9:16" ? "vertical 9:16" : "square 1:1"} aspect ratio`;
     
+    await start.run(async (key) => {
     try {
-      const res = await fetch("http://localhost:8008/api/videofx/generate", {
+      const data = await apiRequest<{ job_id: string }>("/api/videofx/generate", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ prompt: finalPrompt })
+        headers: { "Content-Type": "application/json", "Idempotency-Key": key },
+        body: JSON.stringify({ prompt: finalPrompt, idempotency_key: key })
       });
-      const data = await res.json();
+      if (!data.job_id) throw new Error("The server did not return a job ID.");
       setJobId(data.job_id);
+      return data;
     } catch (err) {
-      setStatus("error");
-      setLogs(prev => [...prev, "Failed to connect to API."]);
+      setStartError(errorMessage(err, "Could not start VideoFX.")); throw err;
     }
+    });
   };
 
   const handleStop = async () => {
     if (!jobId) return;
     try {
-      await fetch(`http://localhost:8008/api/videofx/job/${jobId}`, { method: "DELETE" });
-      setStatus("error");
-      setLogs(prev => [...prev, "Generation cancelled by user."]);
+      await apiRequest(`/api/generate/cancel/${encodeURIComponent(jobId)}`, { method: "POST" });
     } catch (e) {
-      console.error(e);
+      setStartError(errorMessage(e, "Could not stop this job."));
     }
   };
 
   const handleLogin = async () => {
     try {
-      await fetch("http://localhost:8008/api/videofx/login", { method: "POST" });
-      alert("A browser window will open shortly on your computer. Please log in to your Google Account there. Your session will be saved forever, so you only need to do this once!");
+      await apiRequest("/api/videofx/login", { method: "POST" });
+      alert("A browser sign-in window was requested. Medienwerk has not verified that sign-in completed.");
     } catch (e) {
-      console.error(e);
+      setStartError(errorMessage(e, "Could not open the sign-in flow."));
     }
   };
 
@@ -98,7 +67,7 @@ export default function VideoFXFlowPage() {
       <div className="flex items-start justify-between mb-8">
         <div>
           <h1 className="text-3xl font-bold text-white tracking-tight">VideoFX Flow</h1>
-          <p className="text-zinc-400 mt-1">Generate high-quality video clips using Google VideoFX browser automation.</p>
+          <p className="text-zinc-400 mt-1">Generate clips using Google VideoFX browser automation. Sign-in status is not verified here.</p>
         </div>
         <button onClick={handleLogin} className="modern-button bg-zinc-800/50 hover:bg-zinc-800 border-zinc-700/50 text-xs px-4 py-2 flex items-center gap-2 text-zinc-300">
           <LogIn className="h-4 w-4" /> Connect Google Account
@@ -116,7 +85,7 @@ export default function VideoFXFlowPage() {
                 placeholder="Describe the video you want to generate in detail..."
                 className="modern-textarea h-40"
                 required
-                disabled={status === "running"}
+                disabled={busy}
               />
             </div>
             
@@ -128,7 +97,7 @@ export default function VideoFXFlowPage() {
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="block text-[10px] font-bold text-zinc-500 mb-1.5 uppercase tracking-wider">Visual Style</label>
-                  <select value={style} onChange={e => setStyle(e.target.value)} disabled={status === "running"} className="modern-select text-sm py-2">
+                  <select value={style} onChange={e => setStyle(e.target.value)} disabled={busy} className="modern-select text-sm py-2">
                     {["Cinematic", "Cyberpunk", "3D Render", "Anime", "Photorealistic", "Watercolor", "Claymation"].map(s => (
                       <option key={s} value={s} className="bg-black">{s}</option>
                     ))}
@@ -136,7 +105,7 @@ export default function VideoFXFlowPage() {
                 </div>
                 <div>
                   <label className="block text-[10px] font-bold text-zinc-500 mb-1.5 uppercase tracking-wider">Aspect Ratio</label>
-                  <select value={aspectRatio} onChange={e => setAspectRatio(e.target.value)} disabled={status === "running"} className="modern-select text-sm py-2">
+                  <select value={aspectRatio} onChange={e => setAspectRatio(e.target.value)} disabled={busy} className="modern-select text-sm py-2">
                     <option value="16:9" className="bg-black">16:9 (Horizontal)</option>
                     <option value="9:16" className="bg-black">9:16 (Vertical)</option>
                     <option value="1:1" className="bg-black">1:1 (Square)</option>
@@ -148,7 +117,7 @@ export default function VideoFXFlowPage() {
             <div className="flex gap-3">
               <button
                 type="submit"
-                disabled={status === "running"}
+                disabled={busy}
                 className="modern-button flex-1 flex items-center justify-center gap-2"
               >
                 {status === "running" ? (
@@ -158,7 +127,7 @@ export default function VideoFXFlowPage() {
                 )}
               </button>
               
-              {status === "running" && (
+              {busy && (
                 <button
                   type="button"
                   onClick={handleStop}
@@ -173,7 +142,7 @@ export default function VideoFXFlowPage() {
             {status === "error" && (
               <div className="p-4 bg-red-500/10 border border-red-500/20 rounded-xl flex gap-3 text-red-400 text-sm">
                 <AlertCircle className="h-5 w-5 shrink-0" />
-                <p>Generation failed. Please check the logs or ensure your Google account is logged in.</p>
+                <p>{startError || job?.error || jobState.error || "Generation failed. Check the registered job logs and VideoFX sign-in status."}</p>
               </div>
             )}
           </form>
@@ -182,14 +151,15 @@ export default function VideoFXFlowPage() {
           <div className="glass-card p-4">
             <h3 className="text-xs font-bold text-zinc-500 mb-3 uppercase tracking-wider border-b border-white/5 pb-2">Automation Logs</h3>
             <div className="bg-black/50 rounded-lg p-3 font-mono text-[10px] text-zinc-400 h-48 overflow-y-auto space-y-1">
-              {logs.length === 0 && <div className="text-zinc-600">Waiting to start...</div>}
-              {logs.map((log, i) => (
+              {!jobState.logs.length && <div className="text-zinc-600">Waiting to start...</div>}
+              {jobState.logs.map((entry, i) => (
                 <div key={i} className="border-b border-white/5 pb-1 mb-1 last:border-0 last:pb-0 last:mb-0">
                   <span className="text-[#66fcf1] opacity-50 mr-2">{">"}</span>
-                  {log}
+                  {entry.message}
                 </div>
               ))}
             </div>
+            <JobStatus job={job} logs={jobState.logs} error={startError || jobState.error} connection={jobState.connection} onClear={() => setJobId("")} />
           </div>
         </div>
 
@@ -225,7 +195,7 @@ export default function VideoFXFlowPage() {
             
             {status === "completed" && videoResult && (
               <div className="w-full h-full relative flex items-center justify-center bg-black rounded-lg overflow-hidden">
-                <video src={`http://localhost:8008/${videoResult}`} controls className="w-full h-full object-contain" autoPlay loop />
+                <video src={videoResult} controls className="w-full h-full object-contain" autoPlay loop />
               </div>
             )}
           </div>

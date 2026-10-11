@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { Plus, Play, Pause, Trash2, Bot, Clock, Sparkles } from "lucide-react";
+import { apiRequest, errorMessage } from "@/lib/api";
 
 export default function CampaignsPage() {
   const [campaigns, setCampaigns] = useState<any[]>([]);
@@ -11,14 +12,14 @@ export default function CampaignsPage() {
   const [niche, setNiche] = useState("");
   const [preset, setPreset] = useState("Tech News Short");
   const [frequency, setFrequency] = useState("24"); // hours
+  const [error, setError] = useState<string | null>(null);
 
   const fetchCampaigns = async () => {
     try {
-      const res = await fetch("http://localhost:8008/api/campaigns");
-      const data = await res.json();
+      const data = await apiRequest<{ campaigns?: any[] }>("/api/campaigns", { cache: "no-store" });
       setCampaigns(data.campaigns || []);
     } catch (e) {
-      console.error(e);
+      setError(errorMessage(e, "Could not load campaigns."));
     }
   };
 
@@ -33,7 +34,7 @@ export default function CampaignsPage() {
     e.preventDefault();
     if (!name || !niche) return;
     try {
-      await fetch("http://localhost:8008/api/campaigns", {
+      await apiRequest("/api/campaigns", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ name, niche, preset, frequency_hours: parseFloat(frequency) })
@@ -42,19 +43,18 @@ export default function CampaignsPage() {
       setNiche("");
       fetchCampaigns();
     } catch (e) {
-      alert("Failed to create campaign");
+      setError(errorMessage(e, "Could not create a paused campaign."));
     }
   };
 
   const handleToggle = async (cid: string) => {
-    await fetch(`http://localhost:8008/api/campaigns/${cid}/toggle`, { method: "POST" });
-    fetchCampaigns();
+    setError("Campaign scheduling is paused in this build.");
   };
 
   const handleDelete = async (cid: string) => {
     if (!confirm("Are you sure?")) return;
-    await fetch(`http://localhost:8008/api/campaigns/${cid}`, { method: "DELETE" });
-    fetchCampaigns();
+    try { await apiRequest(`/api/campaigns/${encodeURIComponent(cid)}`, { method: "DELETE" }); await fetchCampaigns(); }
+    catch (e) { setError(errorMessage(e, "Could not delete campaign.")); }
   };
 
   return (
@@ -63,7 +63,7 @@ export default function CampaignsPage() {
         <h1 className="text-3xl font-bold text-white tracking-tight flex items-center gap-3">
           <Bot className="h-8 w-8 text-[#66fcf1]" /> Auto-Pilot Campaigns
         </h1>
-        <p className="text-zinc-400 mt-1">Schedule fully automated, hands-free video generation sequences.</p>
+        <p className="text-zinc-400 mt-1">Campaigns can be saved paused. Automatic scheduling is currently disabled.</p>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
@@ -113,7 +113,6 @@ export default function CampaignsPage() {
               <div>
                 <label className="block text-xs font-bold text-zinc-500 mb-2 uppercase tracking-wider">Frequency</label>
                 <select value={frequency} onChange={e => setFrequency(e.target.value)} className="modern-select">
-                  <option className="bg-black" value="0.016">Every 1 Minute (Testing)</option>
                   <option className="bg-black" value="1">Every 1 Hour</option>
                   <option className="bg-black" value="12">Every 12 Hours</option>
                   <option className="bg-black" value="24">Every 24 Hours</option>
@@ -122,7 +121,7 @@ export default function CampaignsPage() {
               </div>
 
               <button type="submit" className="w-full py-3 bg-white text-black font-bold rounded-xl hover:bg-zinc-200 transition-all shadow-[0_0_15px_rgba(255,255,255,0.3)] mt-6">
-                Deploy Auto-Pilot Bot
+                Save Paused Campaign
               </button>
             </form>
           </div>
@@ -132,13 +131,13 @@ export default function CampaignsPage() {
         <div className="lg:col-span-8">
           <div className="glass-card p-6 min-h-[500px]">
             <h2 className="text-xs font-bold text-white uppercase tracking-widest border-b border-white/10 pb-3 mb-6">
-              Active Bots ({campaigns.length})
+              Saved Campaigns ({campaigns.length})
             </h2>
 
             {campaigns.length === 0 ? (
               <div className="h-64 flex items-center justify-center text-zinc-500 flex-col gap-4 opacity-50">
                 <Sparkles className="h-10 w-10" />
-                <p>No active campaigns. Deploy a bot to start automating.</p>
+                <p>No saved campaigns yet.</p>
               </div>
             ) : (
               <div className="space-y-4">
@@ -152,8 +151,7 @@ export default function CampaignsPage() {
                       
                       <div>
                         <h3 className="font-bold text-white text-lg flex items-center gap-2">
-                          {c.name}
-                          {c.active && <span className="h-2 w-2 bg-[#66fcf1] rounded-full shadow-[0_0_10px_#66fcf1] animate-pulse"></span>}
+                          {c.name}<span className="text-[10px] rounded bg-amber-500/10 px-2 py-1 text-amber-300">Paused</span>
                         </h3>
                         <p className="text-zinc-400 text-sm">{c.niche} &bull; {c.preset}</p>
                       </div>
@@ -163,16 +161,13 @@ export default function CampaignsPage() {
                       <div className="text-right hidden sm:block">
                         <p className="text-xs font-bold text-zinc-500 uppercase tracking-widest flex items-center gap-1 justify-end"><Clock className="h-3 w-3" /> Next Run</p>
                         <p className="text-sm text-zinc-300">
-                          {c.active ? new Date(c.next_run * 1000).toLocaleString() : 'Paused'}
+                          Paused; no next run
                         </p>
                       </div>
 
                       <div className="flex items-center gap-2">
-                        <button 
-                          onClick={() => handleToggle(c.id)} 
-                          className={`p-3 rounded-lg border transition-all ${c.active ? 'bg-amber-500/10 border-amber-500/30 text-amber-500 hover:bg-amber-500/20' : 'bg-emerald-500/10 border-emerald-500/30 text-emerald-500 hover:bg-emerald-500/20'}`}
-                        >
-                          {c.active ? <Pause className="h-5 w-5" /> : <Play className="h-5 w-5" />}
+                        <button type="button" onClick={() => handleToggle(c.id)} disabled title="Scheduling is disabled" className="p-3 rounded-lg border bg-white/5 border-white/10 text-zinc-500 cursor-not-allowed">
+                          <Play className="h-5 w-5" />
                         </button>
                         <button 
                           onClick={() => handleDelete(c.id)} 
@@ -190,6 +185,7 @@ export default function CampaignsPage() {
           </div>
         </div>
       </div>
+      {error && <p role="alert" className="mt-4 text-sm text-rose-300">{error}</p>}
     </div>
   );
 }

@@ -1,68 +1,27 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState } from "react";
 import { Film, Upload, Loader2, Play, Download, Wand2, Settings2, FileAudio } from "lucide-react";
+import { apiRequest, errorMessage } from "@/lib/api";
+import { useJob, useResumableJobId, useStartGuard, jobMediaUrl } from "@/lib/jobs";
+import { JobStatus } from "@/components/JobStatus";
 
 export default function DirectorModePage() {
   const [url, setUrl] = useState("");
-  const [status, setStatus] = useState("idle");
-  const [jobId, setJobId] = useState<string | null>(null);
-  const [progress, setProgress] = useState(0);
-  const [logMsg, setLogMsg] = useState("");
-  const [logs, setLogs] = useState<{message: string, time: string}[]>([]);
-  const [finalVideo, setFinalVideo] = useState<string | null>(null);
+  const [jobId, setJobId] = useResumableJobId("director");
+  const [startError, setStartError] = useState<string | null>(null);
+  const start = useStartGuard();
+  const jobState = useJob(jobId);
+  const job = jobState.job;
+  const status = start.starting ? "processing" : job?.status || (startError ? "failed" : "idle");
+  const busy = start.starting || status === "processing" || status === "queued" || status === "running" || status === "cancel_requested";
+  const finalVideo = jobMediaUrl(job);
   
   // Settings
   const [removeSilence, setRemoveSilence] = useState(true);
   const [addPunchIns, setAddPunchIns] = useState(true);
   const [addSfx, setAddSfx] = useState(true);
   
-  const wsRef = useRef<WebSocket | null>(null);
-
-  useEffect(() => {
-    if (!jobId) return;
-
-    const ws = new WebSocket(`ws://localhost:8008/api/generate/ws/${jobId}`);
-    wsRef.current = ws;
-
-    ws.onmessage = (event) => {
-      try {
-        const data = JSON.parse(event.data);
-        if (data.type === "log") {
-          setLogMsg(data.message);
-          setProgress(data.progress * 100);
-          setLogs(prev => {
-            if (prev.length > 0 && prev[prev.length - 1].message === data.message) return prev;
-            return [...prev, { message: data.message, time: new Date().toLocaleTimeString() }];
-          });
-        } else if (data.type === "update" || data.type === "full_state") {
-          const state = data.data || data;
-          if (state.status === "completed") {
-            setStatus("completed");
-            if (state.result) {
-              setFinalVideo(state.result);
-            }
-          } else if (state.status === "failed") {
-            setStatus("failed");
-            setLogMsg(`Error: ${state.error}`);
-          }
-          if (data.type === "full_state") {
-            setProgress(state.progress * 100);
-            setLogMsg(state.step);
-            if (state.status === "completed" && state.result) {
-               setFinalVideo(state.result);
-            }
-          }
-        }
-      } catch (e) {
-        console.error("WS Parse Error", e);
-      }
-    };
-
-    return () => {
-      ws.close();
-    };
-  }, [jobId]);
 
   const handleGenerate = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -71,35 +30,25 @@ export default function DirectorModePage() {
       return;
     }
     
-    setStatus("processing");
-    setFinalVideo(null);
-    setProgress(0);
-    setLogMsg("Initializing Director Engine...");
-    setLogs([{ message: "Starting Director Mode...", time: new Date().toLocaleTimeString() }]);
-    
+    setStartError(null);
+    await start.run(async (key) => {
     try {
-      const res = await fetch("http://localhost:8008/api/director/process", {
+      const data = await apiRequest<{ job_id: string }>("/api/director/process", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", "Idempotency-Key": key },
         body: JSON.stringify({ 
           url: url,
           remove_silence: removeSilence,
           add_punch_ins: addPunchIns,
-          add_sfx: addSfx
+          add_sfx: addSfx, idempotency_key: key
         })
       });
-      
-      const data = await res.json();
-      if (!res.ok) {
-        alert("Failed to start director: " + data.detail);
-        setStatus("idle");
-      } else {
-        setJobId(data.job_id);
-      }
+      if (!data.job_id) throw new Error("The server did not return a job ID.");
+      setJobId(data.job_id); return data;
     } catch (err) {
-      alert("API Error");
-      setStatus("idle");
+      setStartError(errorMessage(err, "Could not start Director Mode.")); throw err;
     }
+    });
   };
 
   return (
@@ -127,7 +76,7 @@ export default function DirectorModePage() {
                   onChange={e => setUrl(e.target.value)}
                   placeholder="https://..."
                   className="modern-input"
-                  disabled={status === "processing"}
+                  disabled={status === "processing" || status === "queued" || status === "running"}
                 />
               </div>
 
@@ -137,7 +86,7 @@ export default function DirectorModePage() {
                 </label>
                 
                 <label className="flex items-center gap-3 p-3 bg-black/40 border border-white/5 rounded-xl cursor-pointer hover:bg-white/5 transition-all">
-                  <input type="checkbox" checked={removeSilence} onChange={e => setRemoveSilence(e.target.checked)} className="w-4 h-4 accent-[#66fcf1]" disabled={status === "processing"} />
+                  <input type="checkbox" checked={removeSilence} onChange={e => setRemoveSilence(e.target.checked)} className="w-4 h-4 accent-[#66fcf1]" disabled={busy} />
                   <div className="flex-1">
                     <p className="text-sm font-bold text-white">Silence & Umm Removal</p>
                     <p className="text-xs text-zinc-500">Automatically trims dead air for hyper-fast pacing.</p>
@@ -146,7 +95,7 @@ export default function DirectorModePage() {
                 </label>
 
                 <label className="flex items-center gap-3 p-3 bg-black/40 border border-white/5 rounded-xl cursor-pointer hover:bg-white/5 transition-all">
-                  <input type="checkbox" checked={addPunchIns} onChange={e => setAddPunchIns(e.target.checked)} className="w-4 h-4 accent-[#66fcf1]" disabled={status === "processing"} />
+                  <input type="checkbox" checked={addPunchIns} onChange={e => setAddPunchIns(e.target.checked)} className="w-4 h-4 accent-[#66fcf1]" disabled={busy} />
                   <div className="flex-1">
                     <p className="text-sm font-bold text-white">Dynamic Punch-ins</p>
                     <p className="text-xs text-zinc-500">Auto-zooms camera on high-impact sentences.</p>
@@ -155,7 +104,7 @@ export default function DirectorModePage() {
                 </label>
 
                 <label className="flex items-center gap-3 p-3 bg-black/40 border border-white/5 rounded-xl cursor-pointer hover:bg-white/5 transition-all">
-                  <input type="checkbox" checked={addSfx} onChange={e => setAddSfx(e.target.checked)} className="w-4 h-4 accent-[#66fcf1]" disabled={status === "processing"} />
+                  <input type="checkbox" checked={addSfx} onChange={e => setAddSfx(e.target.checked)} className="w-4 h-4 accent-[#66fcf1]" disabled={busy} />
                   <div className="flex-1">
                     <p className="text-sm font-bold text-white">Keyword Sound Effects</p>
                     <p className="text-xs text-zinc-500">Injects swoosh and pop sounds to emphasize text.</p>
@@ -165,7 +114,7 @@ export default function DirectorModePage() {
               </div>
 
               <div className="pt-4">
-                {status === "processing" ? (
+                {busy ? (
                   <button type="button" disabled className="w-full py-4 bg-white/20 text-white font-bold rounded-xl flex items-center justify-center gap-2 cursor-not-allowed">
                     <Loader2 className="h-5 w-5 animate-spin" /> Auto-Editing Video...
                   </button>
@@ -183,28 +132,7 @@ export default function DirectorModePage() {
               <h2 className="text-xs font-bold text-white uppercase tracking-widest border-b border-white/10 pb-3">
                 Live Timeline
               </h2>
-              <div className="flex-1 flex flex-col justify-center gap-6">
-                <div className="text-center">
-                  <p className="text-4xl font-black text-white">{Math.round(progress)}%</p>
-                  <p className="text-sm text-[#66fcf1] mt-2 font-medium">{logMsg}</p>
-                </div>
-                
-                <div className="w-full h-2 bg-white/5 rounded-full overflow-hidden">
-                  <div 
-                    className="h-full bg-gradient-to-r from-[#66fcf1] to-[#45f3e5] transition-all duration-300"
-                    style={{ width: `${progress}%` }}
-                  />
-                </div>
-                
-                <div className="mt-4 flex-1 bg-black/40 rounded-xl p-4 overflow-y-auto border border-white/5 space-y-2 max-h-[150px]">
-                  {logs.map((log, i) => (
-                    <div key={i} className="flex gap-3 text-xs font-mono text-zinc-400">
-                      <span className="text-zinc-600">[{log.time}]</span>
-                      <span className={i === logs.length - 1 ? "text-[#66fcf1]" : ""}>{log.message}</span>
-                    </div>
-                  ))}
-                </div>
-              </div>
+              <JobStatus job={job} logs={jobState.logs} error={startError || jobState.error} connection={jobState.connection} onClear={() => setJobId("")} />
             </div>
           )}
         </div>
@@ -226,14 +154,14 @@ export default function DirectorModePage() {
                 <div className="w-full max-w-2xl mx-auto flex flex-col gap-6">
                   <div className="aspect-video bg-black rounded-xl border border-white/10 overflow-hidden relative shadow-2xl">
                     <video 
-                      src={`http://localhost:8008/api/generate/media?path=${encodeURIComponent(finalVideo.replace(/\\/g, '/'))}`} 
+                      src={finalVideo}
                       controls 
                       className="w-full h-full object-cover"
                     />
                   </div>
                   
                   <div className="flex items-center gap-3">
-                    <a href={`http://localhost:8008/api/generate/media?path=${encodeURIComponent(finalVideo.replace(/\\/g, '/'))}`} download className="flex-1 py-4 bg-[#66fcf1] hover:bg-[#45f3e5] text-black rounded-xl flex items-center justify-center gap-2 text-sm font-bold transition-all shadow-[0_0_15px_rgba(102,252,241,0.2)]">
+                    <a href={finalVideo} download className="flex-1 py-4 bg-[#66fcf1] hover:bg-[#45f3e5] text-black rounded-xl flex items-center justify-center gap-2 text-sm font-bold transition-all shadow-[0_0_15px_rgba(102,252,241,0.2)]">
                       <Download className="h-5 w-5" /> Download Final Master
                     </a>
                   </div>

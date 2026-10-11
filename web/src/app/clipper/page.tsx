@@ -3,15 +3,33 @@
 import { useState, useEffect, useRef } from "react";
 import { MonitorPlay, Scissors, Loader2, Play, Download, Settings2, ScissorsSquare, Share2, CheckCircle2, Circle, Edit2, Upload } from "lucide-react";
 import TimelineEditor from "@/components/TimelineEditor";
+import { apiRequest, errorMessage } from "@/lib/api";
+import { JobStatus } from "@/components/JobStatus";
+import { useJob, useResumableJobId, useStartGuard } from "@/lib/jobs";
+
+interface GeneratedClip {
+  title: string;
+  path?: string;
+  media_id?: string;
+  video_url?: string;
+  seo_title?: string;
+  seo_description?: string;
+  seo_tags?: string;
+}
 
 export default function ClipperPage() {
   const [url, setUrl] = useState("");
-  const [status, setStatus] = useState("idle"); // idle, processing, selection, completed, failed
-  const [jobId, setJobId] = useState<string | null>(null);
-  const [progress, setProgress] = useState(0);
-  const [logMsg, setLogMsg] = useState("");
-  const [logs, setLogs] = useState<{message: string, time: string}[]>([]);
-  const [clips, setClips] = useState<{title: string, path: string}[]>([]);
+  const [jobId, setJobId] = useResumableJobId("clipper");
+  const [startError, setStartError] = useState<string | null>(null);
+  const start = useStartGuard();
+  const renderStart = useStartGuard();
+  const jobState = useJob(jobId);
+  const job = jobState.job;
+  const result = job?.result && typeof job.result === "object" ? job.result as Record<string, any>
+    : typeof job?.result === "string" ? (() => { try { return JSON.parse(job.result as string) as Record<string, any>; } catch { return null; } })() : null;
+  const status = job?.status === "awaiting_input" ? "selection" : job?.status === "completed" ? "completed" : job?.status === "failed" ? "failed" : job?.status || (start.starting ? "processing" : "idle");
+  const busy = start.starting || status === "processing" || status === "queued" || status === "running" || status === "cancel_requested";
+  const [clips, setClips] = useState<GeneratedClip[]>([]);
   const [numClips, setNumClips] = useState(3);
   
   // Local File vs YouTube
@@ -31,64 +49,25 @@ export default function ClipperPage() {
   const [pubTags, setPubTags] = useState("");
   const [pubStatus, setPubStatus] = useState("idle");
   
-  const wsRef = useRef<WebSocket | null>(null);
-
+  const lastResult = useRef("");
   useEffect(() => {
-    if (!jobId) return;
-
-    const ws = new WebSocket(`ws://localhost:8008/api/generate/ws/${jobId}`);
-    wsRef.current = ws;
-
-    ws.onmessage = (event) => {
-      try {
-        const data = JSON.parse(event.data);
-        if (data.type === "log") {
-          setLogMsg(data.message);
-          setProgress(data.progress * 100);
-          setLogs(prev => {
-            if (prev.length > 0 && prev[prev.length - 1].message === data.message) return prev;
-            return [...prev, { message: data.message, time: new Date().toLocaleTimeString() }];
-          });
-        } else if (data.type === "update" || data.type === "full_state") {
-          const state = data.data || data; // handle both structures
-          if (state.status === "failed") {
-            setStatus("failed");
-            setLogMsg(`Error: ${state.error}`);
-            return;
-          }
-          
-          if (data.type === "full_state") {
-            setProgress(state.progress * 100);
-            setLogMsg(state.step);
-          }
-          
-          if (state.result) {
-            try {
-              const res = JSON.parse(state.result);
-              if (res.type === "selection") {
-                setStatus("selection");
-                setAnalyzedClips(res.clips);
-                setVideoPath(res.video_path);
-                // auto-select all by default
-                setSelectedClipIndices(new Set(res.clips.map((_: any, i: number) => i)));
-              } else if (res.type === "finished") {
-                setStatus("completed");
-                setClips(res.clips);
-              }
-            } catch (e) {
-              console.error("Failed to parse clips result", e);
-            }
-          }
-        }
-      } catch (e) {
-        console.error("WS Parse Error", e);
-      }
-    };
-
-    return () => {
-      ws.close();
-    };
-  }, [jobId]);
+    if (!result) return;
+    const signature = JSON.stringify({ result, media: job?.result_media });
+    if (signature === lastResult.current) return;
+    lastResult.current = signature;
+    if (result.type === "selection") {
+      setAnalyzedClips(Array.isArray(result.clips) ? result.clips : []);
+      setVideoPath(String(result.video_path || ""));
+      setSelectedClipIndices(new Set((Array.isArray(result.clips) ? result.clips : []).map((_: any, i: number) => i)));
+    } else if (Array.isArray(result.clips)) {
+      const media = job?.result_media || [];
+      setClips(result.clips.map((clip: GeneratedClip, index: number) => {
+        const registered = media[index];
+        const mediaId = typeof registered?.id === "string" ? registered.id : undefined;
+        return { ...clip, media_id: clip.media_id || mediaId, video_url: clip.video_url || registered?.url || (mediaId ? `/api/projects/media/${encodeURIComponent(mediaId)}/download` : undefined) };
+      }));
+    }
+  }, [result, job?.result_media]);
 
   const handleGenerate = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -104,69 +83,61 @@ export default function ClipperPage() {
       }
     }
     
-    setStatus("processing");
+    setStartError(null);
     setClips([]);
     setAnalyzedClips([]);
-    setProgress(0);
-    setLogMsg("Analyzing video...");
-    setLogs([{ message: "Queuing analysis...", time: new Date().toLocaleTimeString() }]);
-    
+    await start.run(async (key) => {
     try {
       let res;
       if (inputType === "youtube") {
-        res = await fetch("http://localhost:8008/api/clipper/analyze", {
+        res = await apiRequest<{ job_id: string }>("/api/clipper/analyze", {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
+          headers: { "Content-Type": "application/json", "Idempotency-Key": key },
           body: JSON.stringify({ 
             url: url, 
-            num_clips: numClips
+            num_clips: numClips, idempotency_key: key
           })
         });
       } else {
         const formData = new FormData();
         formData.append("file", file!);
         formData.append("num_clips", numClips.toString());
+        formData.append("idempotency_key", key);
 
-        res = await fetch("http://localhost:8008/api/clipper/analyze_local", {
+        res = await apiRequest<{ job_id: string }>("/api/clipper/analyze_local", {
           method: "POST",
-          body: formData
+          headers: { "Idempotency-Key": key }, body: formData
         });
       }
-      
-      const data = await res.json();
-      if (!res.ok) {
-        alert("Failed to start analysis: " + data.detail);
-        setStatus("idle");
-      } else {
-        setJobId(data.job_id);
-      }
+      if (!res.job_id) throw new Error("The server did not return a job ID.");
+      setJobId(res.job_id); return res;
     } catch (err) {
-      alert("API Error");
-      setStatus("idle");
+      setStartError(errorMessage(err, "Could not start clip analysis.")); throw err;
     }
+    });
   };
 
   const handleRenderSelected = async () => {
     if (selectedClipIndices.size === 0) return;
-    setStatus("processing");
-    setProgress(0);
-    setLogMsg("Starting render engine...");
+    if (!jobId) return;
     
     const selected = analyzedClips.filter((_, i) => selectedClipIndices.has(i));
     
+    await renderStart.run(async (key) => {
     try {
-      await fetch("http://localhost:8008/api/clipper/render", {
+      await apiRequest("/api/clipper/render", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", "Idempotency-Key": key },
         body: JSON.stringify({ 
           job_id: jobId,
           video_path: videoPath,
-          selected_clips: selected
+          selected_clips: selected, idempotency_key: key
         })
       });
     } catch (err) {
-      alert("API Error");
+      setStartError(errorMessage(err, "Could not render the selected clips.")); throw err;
     }
+    });
   };
 
   const toggleSelection = (index: number) => {
@@ -190,11 +161,11 @@ export default function ClipperPage() {
     
     setPubStatus("publishing");
     try {
-      const res = await fetch("http://localhost:8008/api/publish/youtube", {
+      const res = await apiRequest<{ [key: string]: unknown }>("/api/publish/youtube", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ 
-          video_path: publishModal.path,
+          media_id: publishModal.path,
           title: pubTitle,
           description: pubDesc,
           tags: pubTags,
@@ -202,15 +173,9 @@ export default function ClipperPage() {
         })
       });
       
-      const data = await res.json();
-      if (!res.ok) {
-        alert("Failed to publish: " + data.detail);
-      } else {
-        alert("Successfully uploaded to YouTube!");
-        setPublishModal(null);
-      }
+      alert("YouTube upload completed."); setPublishModal(null);
     } catch (err) {
-      alert("API Error");
+      setStartError(errorMessage(err, "Could not upload to YouTube."));
     } finally {
       setPubStatus("idle");
     }
@@ -259,7 +224,7 @@ export default function ClipperPage() {
                     onChange={e => setUrl(e.target.value)}
                     placeholder="https://www.youtube.com/watch?v=..."
                     className="modern-input"
-                    disabled={status === "processing"}
+                    disabled={busy}
                   />
                 </div>
               ) : (
@@ -273,7 +238,7 @@ export default function ClipperPage() {
                       accept="video/*"
                       onChange={e => e.target.files && setFile(e.target.files[0])}
                       className="text-sm text-zinc-400 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-xs file:font-bold file:bg-[#66fcf1]/10 file:text-[#66fcf1] hover:file:bg-[#66fcf1]/20 cursor-pointer"
-                      disabled={status === "processing"}
+                      disabled={busy}
                     />
                   </div>
                   {file && <p className="text-[10px] text-zinc-500 mt-2 text-center truncate">{file.name} ({(file.size / (1024 * 1024)).toFixed(2)} MB)</p>}
@@ -292,7 +257,7 @@ export default function ClipperPage() {
                   value={numClips}
                   onChange={e => setNumClips(parseInt(e.target.value))}
                   className="w-full accent-[#66fcf1] h-2 bg-white/10 rounded-lg appearance-none cursor-pointer"
-                  disabled={status === "processing"}
+                  disabled={busy}
                 />
                 <div className="flex justify-between text-[10px] text-zinc-600 mt-2 font-bold px-1">
                   <span>1</span>
@@ -302,7 +267,7 @@ export default function ClipperPage() {
               </div>
 
               <div className="pt-2">
-                {status === "processing" ? (
+                {busy || renderStart.starting ? (
                   <button type="button" disabled className="w-full py-4 bg-white/20 text-white font-bold rounded-xl flex items-center justify-center gap-2 cursor-not-allowed">
                     <Loader2 className="h-5 w-5 animate-spin" /> Processing...
                   </button>
@@ -315,33 +280,12 @@ export default function ClipperPage() {
             </form>
           </div>
 
-          {status !== "idle" && status !== "selection" && (
+          {(status !== "idle" && status !== "selection" || startError) && (
             <div className="glass-card p-6 flex flex-col gap-4 flex-1">
               <h2 className="text-xs font-bold text-white uppercase tracking-widest border-b border-white/10 pb-3">
                 Live Progress
               </h2>
-              <div className="flex-1 flex flex-col justify-center gap-6">
-                <div className="text-center">
-                  <p className="text-4xl font-black text-white">{Math.round(progress)}%</p>
-                  <p className="text-sm text-[#66fcf1] mt-2 font-medium">{logMsg}</p>
-                </div>
-                
-                <div className="w-full h-2 bg-white/5 rounded-full overflow-hidden">
-                  <div 
-                    className="h-full bg-gradient-to-r from-[#66fcf1] to-[#45f3e5] transition-all duration-300"
-                    style={{ width: `${progress}%` }}
-                  />
-                </div>
-                
-                <div className="mt-4 flex-1 bg-black/40 rounded-xl p-4 overflow-y-auto border border-white/5 space-y-2 max-h-[150px]">
-                  {logs.map((log, i) => (
-                    <div key={i} className="flex gap-3 text-xs font-mono text-zinc-400">
-                      <span className="text-zinc-600">[{log.time}]</span>
-                      <span className={i === logs.length - 1 ? "text-[#66fcf1]" : ""}>{log.message}</span>
-                    </div>
-                  ))}
-                </div>
-              </div>
+              <JobStatus job={job} logs={jobState.logs} error={startError || jobState.error} connection={jobState.connection} onClear={() => setJobId("")} />
             </div>
           )}
         </div>
@@ -410,7 +354,7 @@ export default function ClipperPage() {
                 <div className="pt-6 border-t border-white/10 mt-auto">
                   <button 
                     onClick={handleRenderSelected}
-                    disabled={selectedClipIndices.size === 0}
+                    disabled={selectedClipIndices.size === 0 || renderStart.starting}
                     className="w-full py-4 bg-[#66fcf1] text-black font-bold rounded-xl hover:bg-[#45f3e5] transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     Render {selectedClipIndices.size} Selected Clips
@@ -428,7 +372,7 @@ export default function ClipperPage() {
                       <div key={i} className="flex flex-col gap-3 group">
                         <div className="aspect-[9/16] bg-black rounded-xl border border-white/10 overflow-hidden relative shadow-lg">
                           <video 
-                            src={`http://localhost:8008/api/generate/media?path=${encodeURIComponent(clip.path.replace(/\\/g, '/'))}`} 
+                            src={clip.video_url || (clip.media_id ? `/api/projects/media/${encodeURIComponent(clip.media_id)}/download` : clip.path ? `/api/generate/media?path=${encodeURIComponent(clip.path)}` : undefined)}
                             controls 
                             className="w-full h-full object-cover"
                           />
@@ -438,13 +382,13 @@ export default function ClipperPage() {
                             {clip.title}
                           </p>
                           <div className="flex items-center gap-2 mt-3">
-                            <a href={`http://localhost:8008/api/generate/media?path=${encodeURIComponent(clip.path.replace(/\\/g, '/'))}`} download className="flex-1 py-2 bg-white/10 hover:bg-white/20 text-white rounded-lg flex items-center justify-center gap-2 text-xs font-bold transition-all">
+                            <a href={clip.video_url || (clip.media_id ? `/api/projects/media/${encodeURIComponent(clip.media_id)}/download` : clip.path ? `/api/generate/media?path=${encodeURIComponent(clip.path)}` : "#")} download className="flex-1 py-2 bg-white/10 hover:bg-white/20 text-white rounded-lg flex items-center justify-center gap-2 text-xs font-bold transition-all">
                               <Download className="h-4 w-4" /> Download
                             </a>
                             <button 
                               onClick={() => {
                                 setPublishModal({
-                                  path: clip.path, 
+                                  path: clip.media_id || "",
                                   defaultTitle: clip.seo_title || clip.title,
                                   defaultDesc: clip.seo_description || "",
                                   defaultTags: clip.seo_tags || ""

@@ -3,9 +3,21 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { LayoutDashboard, Video, Settings, History, Wrench, Share2, Layers, Sparkles, Bot, Scissors, Film, MonitorPlay, Clapperboard } from "lucide-react";
+import { useEffect, useState } from "react";
+import { apiRequest } from "@/lib/api";
 
 export function Sidebar() {
   const pathname = usePathname();
+  const [apiStatus, setApiStatus] = useState<"checking" | "online" | "offline">("checking");
+  useEffect(() => {
+    let alive = true;
+    const check = async () => {
+      try { await apiRequest("/api/health", { cache: "no-store" }); if (alive) setApiStatus("online"); }
+      catch { if (alive) setApiStatus("offline"); }
+    };
+    void check(); const timer = setInterval(check, 30000);
+    return () => { alive = false; clearInterval(timer); };
+  }, []);
 
   const navItems = [
     { name: "Dashboard", href: "/", icon: LayoutDashboard },
@@ -61,10 +73,10 @@ export function Sidebar() {
 
       <div className="pt-6 border-t border-white/10 mt-6">
         <div className="flex items-center gap-3 bg-black/40 p-3 rounded-xl border border-white/5">
-          <div className="h-2.5 w-2.5 rounded-full bg-[#66fcf1] shadow-[0_0_10px_rgba(102,252,241,0.6)] animate-pulse" />
+          <div className={`h-2.5 w-2.5 rounded-full ${apiStatus === "online" ? "bg-emerald-400 shadow-[0_0_10px_rgba(52,211,153,0.6)]" : apiStatus === "offline" ? "bg-rose-400" : "bg-zinc-500 animate-pulse"}`} />
           <div>
-             <span className="text-[10px] font-bold text-white block">API Connected</span>
-             <span className="text-[9px] font-medium text-zinc-500 block">Port 8008</span>
+             <span className="text-[10px] font-bold text-white block">{apiStatus === "online" ? "API Online" : apiStatus === "offline" ? "API Offline" : "Checking API"}</span>
+             <span className="text-[9px] font-medium text-zinc-500 block">Local service health</span>
           </div>
         </div>
       </div>

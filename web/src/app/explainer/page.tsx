@@ -1,17 +1,21 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState } from "react";
 import { Film, Upload, Loader2, Play, Download, Wand2, Settings2, Clapperboard } from "lucide-react";
+import { apiRequest, errorMessage } from "@/lib/api";
+import { useJob, useResumableJobId, useStartGuard, jobMediaUrl } from "@/lib/jobs";
+import { JobStatus } from "@/components/JobStatus";
 
 export default function ExplainerModePage() {
   const [url, setUrl] = useState("");
-  const [status, setStatus] = useState("idle");
-  const [jobId, setJobId] = useState<string | null>(null);
-  const [progress, setProgress] = useState(0);
-  const [logMsg, setLogMsg] = useState("");
-  const [logs, setLogs] = useState<{message: string, time: string}[]>([]);
-  const [finalVideo, setFinalVideo] = useState<string | null>(null);
-  const [activeStep, setActiveStep] = useState(0);
+  const [jobId, setJobId] = useResumableJobId("explainer");
+  const [startError, setStartError] = useState<string | null>(null);
+  const start = useStartGuard();
+  const jobState = useJob(jobId);
+  const job = jobState.job;
+  const status = start.starting ? "processing" : job?.status || (startError ? "failed" : "idle");
+  const busy = start.starting || status === "processing" || status === "queued" || status === "running" || status === "cancel_requested";
+  const finalVideo = jobMediaUrl(job);
   
   const STEPS = [
     "Initializing Engine",
@@ -29,54 +33,6 @@ export default function ExplainerModePage() {
   const [audioEngine, setAudioEngine] = useState("WaveSpeed AI (ElevenLabs)");
   const [voice, setVoice] = useState("Brian");
   
-  const wsRef = useRef<WebSocket | null>(null);
-
-  useEffect(() => {
-    if (!jobId) return;
-
-    const ws = new WebSocket(`ws://localhost:8008/api/generate/ws/${jobId}`);
-    wsRef.current = ws;
-
-    ws.onmessage = (event) => {
-      try {
-        const data = JSON.parse(event.data);
-        if (data.type === "log") {
-          setLogMsg(data.message);
-          
-          // Try to match current step
-          const msg = data.message.toLowerCase();
-          if (msg.includes("fetching video")) setActiveStep(1);
-          else if (msg.includes("extracting audio")) setActiveStep(2);
-          else if (msg.includes("transcribing")) setActiveStep(3);
-          else if (msg.includes("generating explainer script")) setActiveStep(4);
-          else if (msg.includes("generating tts")) setActiveStep(5);
-          else if (msg.includes("merging")) setActiveStep(6);
-          else if (msg.includes("complete")) setActiveStep(7);
-          
-          if (data.progress) setProgress(data.progress * 100);
-          setLogs(prev => {
-            if (prev.length > 0 && prev[prev.length - 1].message === data.message) return prev;
-            return [...prev, { message: data.message, time: new Date().toLocaleTimeString() }];
-          });
-        } else if (data.type === "update" || data.type === "full_state") {
-          const state = data.data || data;
-          if (state.status === "completed") {
-            setStatus("completed");
-            if (state.result) setFinalVideo(state.result);
-          } else if (state.status === "failed") {
-            setStatus("failed");
-            setLogMsg(`Error: ${state.error}`);
-          }
-        }
-      } catch (e) {
-        console.error("WS Parse Error", e);
-      }
-    };
-
-    return () => {
-      ws.close();
-    };
-  }, [jobId]);
 
   const handleGenerate = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -85,37 +41,28 @@ export default function ExplainerModePage() {
       return;
     }
     
-    setStatus("processing");
-    setFinalVideo(null);
-    setProgress(0);
-    setLogMsg("Initializing Explainer Engine...");
-    setLogs([{ message: "Starting Movie Explainer...", time: new Date().toLocaleTimeString() }]);
-    
+    setStartError(null);
+    await start.run(async (key) => {
     try {
-      const res = await fetch("http://localhost:8008/api/explainer/process", {
+      const data = await apiRequest<{ job_id: string }>("/api/explainer/process", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", "Idempotency-Key": key },
         body: JSON.stringify({ 
           url: url,
           target_duration: duration,
           language: language,
           voice: voice,
           text_engine: "Gemini API",
-          audio_engine: audioEngine === "Gemini API" ? "Gemini API" : "WaveSpeed AI"
+          audio_engine: audioEngine === "Gemini API" ? "Gemini API" : "WaveSpeed AI",
+          idempotency_key: key
         })
       });
-      
-      const data = await res.json();
-      if (!res.ok) {
-        alert("Failed to start explainer: " + data.detail);
-        setStatus("idle");
-      } else {
-        setJobId(data.job_id);
-      }
+      if (!data.job_id) throw new Error("The server did not return a job ID.");
+      setJobId(data.job_id); return data;
     } catch (err) {
-      alert("API Error");
-      setStatus("idle");
+      setStartError(errorMessage(err, "Could not start the explainer.")); throw err;
     }
+    });
   };
 
   return (
@@ -143,7 +90,7 @@ export default function ExplainerModePage() {
                   onChange={e => setUrl(e.target.value)}
                   placeholder="C:\Movies\Batman.mp4 or https://..."
                   className="modern-input"
-                  disabled={status === "processing"}
+                  disabled={status === "processing" || status === "queued" || status === "running"}
                 />
               </div>
 
@@ -155,7 +102,7 @@ export default function ExplainerModePage() {
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                   <div>
                     <label className="block text-[10px] font-bold text-zinc-500 mb-1.5 uppercase tracking-wider">Target Duration</label>
-                    <select value={duration} onChange={e => setDuration(e.target.value)} disabled={status === "processing"} className="modern-select text-sm py-2">
+                    <select value={duration} onChange={e => setDuration(e.target.value)} disabled={busy} className="modern-select text-sm py-2">
                       <option value="2 minutes" className="bg-black">~ 2 Minutes</option>
                       <option value="5 minutes" className="bg-black">~ 5 Minutes</option>
                       <option value="10 minutes" className="bg-black">~ 10 Minutes</option>
@@ -163,7 +110,7 @@ export default function ExplainerModePage() {
                   </div>
                   <div>
                     <label className="block text-[10px] font-bold text-zinc-500 mb-1.5 uppercase tracking-wider">Language</label>
-                    <select value={language} onChange={e => setLanguage(e.target.value)} disabled={status === "processing"} className="modern-select text-sm py-2">
+                    <select value={language} onChange={e => setLanguage(e.target.value)} disabled={busy} className="modern-select text-sm py-2">
                       <option value="English" className="bg-black">English</option>
                       <option value="Hindi" className="bg-black">Hindi</option>
                       <option value="Urdu" className="bg-black">Urdu</option>
@@ -173,7 +120,7 @@ export default function ExplainerModePage() {
                   </div>
                   <div>
                     <label className="block text-[10px] font-bold text-zinc-500 mb-1.5 uppercase tracking-wider">TTS Engine</label>
-                    <select value={audioEngine} onChange={e => setAudioEngine(e.target.value)} disabled={status === "processing"} className="modern-select text-sm py-2">
+                    <select value={audioEngine} onChange={e => setAudioEngine(e.target.value)} disabled={busy} className="modern-select text-sm py-2">
                       <option value="WaveSpeed AI (ElevenLabs)" className="bg-black">ElevenLabs (Pro)</option>
                       <option value="Gemini API" className="bg-black">Gemini (Fast)</option>
                     </select>
@@ -181,14 +128,14 @@ export default function ExplainerModePage() {
                   <div>
                     <label className="block text-[10px] font-bold text-zinc-500 mb-1.5 uppercase tracking-wider">Voice Actor</label>
                     {audioEngine === "Gemini API" ? (
-                      <select value={voice} onChange={e => setVoice(e.target.value)} disabled={status === "processing"} className="modern-select text-sm py-2">
+                      <select value={voice} onChange={e => setVoice(e.target.value)} disabled={busy} className="modern-select text-sm py-2">
                         <option value="Kore" className="bg-black">Kore (Neutral)</option>
                         <option value="Aoede" className="bg-black">Aoede (Warm)</option>
                         <option value="Fenrir" className="bg-black">Fenrir (Deep Male)</option>
                         <option value="Puck" className="bg-black">Puck (Energetic)</option>
                       </select>
                     ) : (
-                      <select value={voice} onChange={e => setVoice(e.target.value)} disabled={status === "processing"} className="modern-select text-sm py-2">
+                      <select value={voice} onChange={e => setVoice(e.target.value)} disabled={busy} className="modern-select text-sm py-2">
                         <option value="Brian" className="bg-black">Brian (Deep)</option>
                         <option value="Drew" className="bg-black">Drew (News)</option>
                         <option value="Rachel" className="bg-black">Rachel (Calm)</option>
@@ -200,7 +147,7 @@ export default function ExplainerModePage() {
               </div>
 
               <div className="pt-4">
-                {status === "processing" ? (
+                {status === "processing" || status === "queued" || status === "running" ? (
                   <button type="button" disabled className="w-full py-4 bg-white/20 text-white font-bold rounded-xl flex items-center justify-center gap-2 cursor-not-allowed">
                     <Loader2 className="h-5 w-5 animate-spin" /> Generating Explainer...
                   </button>
@@ -218,47 +165,7 @@ export default function ExplainerModePage() {
               <h2 className="text-xs font-bold text-white uppercase tracking-widest border-b border-white/10 pb-3">
                 Live Timeline
               </h2>
-              <div className="flex-1 flex flex-col justify-center gap-6">
-                <div className="text-center">
-                  <p className="text-4xl font-black text-white">{Math.round(progress)}%</p>
-                  <p className="text-sm text-[#fca311] mt-2 font-medium">{logMsg}</p>
-                </div>
-                
-                <div className="w-full h-2 bg-white/5 rounded-full overflow-hidden">
-                  <div 
-                    className="h-full bg-gradient-to-r from-[#fca311] to-[#ffb703] transition-all duration-300"
-                    style={{ width: `${progress}%` }}
-                  />
-                </div>
-                
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mt-4">
-                  {STEPS.map((step, idx) => (
-                    <div key={step} className={`p-3 rounded-xl border flex items-center gap-3 transition-all ${
-                      idx < activeStep ? 'bg-[#fca311]/10 border-[#fca311]/30 text-white' : 
-                      idx === activeStep ? 'bg-[#fca311]/20 border-[#fca311] text-[#fca311] animate-pulse' : 
-                      'bg-black/40 border-white/5 text-zinc-600'
-                    }`}>
-                      <div className={`w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-bold ${
-                        idx < activeStep ? 'bg-[#fca311] text-black' : 
-                        idx === activeStep ? 'bg-[#fca311] text-black' : 
-                        'bg-white/10 text-zinc-500'
-                      }`}>
-                        {idx < activeStep ? '✓' : idx + 1}
-                      </div>
-                      <span className="text-sm font-medium">{step}</span>
-                    </div>
-                  ))}
-                </div>
-                
-                <div className="mt-2 flex-1 bg-black/40 rounded-xl p-4 overflow-y-auto border border-white/5 space-y-2 max-h-[100px]">
-                  {logs.map((log, i) => (
-                    <div key={i} className="flex gap-3 text-xs font-mono text-zinc-400">
-                      <span className="text-zinc-600">[{log.time}]</span>
-                      <span className={i === logs.length - 1 ? "text-[#fca311]" : ""}>{log.message}</span>
-                    </div>
-                  ))}
-                </div>
-              </div>
+              <JobStatus job={job} logs={jobState.logs} error={startError || jobState.error} connection={jobState.connection} onClear={() => setJobId("")} />
             </div>
           )}
         </div>
@@ -280,14 +187,14 @@ export default function ExplainerModePage() {
                 <div className="w-full max-w-2xl mx-auto flex flex-col gap-6">
                   <div className="aspect-video bg-black rounded-xl border border-white/10 overflow-hidden relative shadow-2xl">
                     <video 
-                      src={`http://localhost:8008/api/generate/media?path=${encodeURIComponent(finalVideo.replace(/\\/g, '/'))}`} 
+                      src={finalVideo}
                       controls 
                       className="w-full h-full object-cover"
                     />
                   </div>
                   
                   <div className="flex items-center gap-3">
-                    <a href={`http://localhost:8008/api/generate/media?path=${encodeURIComponent(finalVideo.replace(/\\/g, '/'))}`} download className="flex-1 py-4 bg-[#fca311] hover:bg-[#ffb703] text-black rounded-xl flex items-center justify-center gap-2 text-sm font-bold transition-all shadow-[0_0_15px_rgba(252,163,17,0.2)]">
+                    <a href={finalVideo} download className="flex-1 py-4 bg-[#fca311] hover:bg-[#ffb703] text-black rounded-xl flex items-center justify-center gap-2 text-sm font-bold transition-all shadow-[0_0_15px_rgba(252,163,17,0.2)]">
                       <Download className="h-5 w-5" /> Download Final Master
                     </a>
                   </div>
