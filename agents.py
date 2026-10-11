@@ -11,6 +11,7 @@ from pathlib import Path
 from pydub import AudioSegment
 
 from api_clients import GoogleClient, WaveSpeedClient, NewsApiClient
+from server.core.provider_adapters import synthesize_speech
 
 class BaseAgent:
     def __init__(self, config, ui_context, name):
@@ -29,15 +30,15 @@ class TrendAgent(BaseAgent):
         self.set_status("Scanning News...", "running")
         self.log("Fetching top headlines for viral topics...")
         news_client = NewsApiClient(self.config.get("NEWS_API_KEY"))
-        headlines = news_client.get_top_headlines(category="technology")
+        headlines = news_client.get_news("technology")
         if not headlines:
-            headlines = news_client.get_top_headlines(category="general")
+            headlines = news_client.get_news("general")
             
         if not headlines:
             self.set_status("Failed", "error")
             return ["AI Taking Over The World", "The Future of Quantum Computing", "Mars Colonization Secrets"]
             
-        context = "\n".join([f"- {h}" for h in headlines[:15]])
+        context = headlines[:6000]
         prompt = f"Analyze these current news headlines:\n{context}\n\nBased on these, generate exactly 3 highly engaging, viral debate topics suitable for a YouTube podcast. Output them as a numbered list (1., 2., 3.) with no extra text. Keep them punchy and controversial."
         
         google_client = GoogleClient(self.config)
@@ -122,7 +123,7 @@ class WriterAgent(BaseAgent):
             
         google_client = GoogleClient(self.config)
         audio_file = os.path.join(output_dir, "voiceover.wav")
-        google_client.generate_tts(script, audio_file, self.config)
+        synthesize_speech(self.config, script, audio_file)
         
         self.set_status("Audio Done", "done")
         self.log("Writer Agent finished.")
@@ -172,7 +173,7 @@ class DirectorAgent(BaseAgent):
 class ImageGenAgent(BaseAgent):
     def run(self, scenes, output_dir, aspect_ratio="16:9"):
         self.set_status("Generating Images...", "running")
-        wavespeed = WaveSpeedClient(self.config.get("WAVESPEED_AI_KEY"))
+        wavespeed = WaveSpeedClient(self.config.get("WAVESPEED_API_KEY"))
         
         images_dir = os.path.join(output_dir, "images")
         os.makedirs(images_dir, exist_ok=True)
@@ -207,7 +208,7 @@ class ImageGenAgent(BaseAgent):
 class VideoGenAgent(BaseAgent):
     def run(self, scenes, image_paths, output_dir, aspect_ratio="16:9"):
         self.set_status("Generating Videos...", "running")
-        wavespeed = WaveSpeedClient(self.config.get("WAVESPEED_AI_KEY"))
+        wavespeed = WaveSpeedClient(self.config.get("WAVESPEED_API_KEY"))
         
         video_dir = os.path.join(output_dir, "videos")
         os.makedirs(video_dir, exist_ok=True)

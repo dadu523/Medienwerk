@@ -203,7 +203,7 @@ class GoogleClient:
                 raise RuntimeError(f"Ollama local generation failed: {e}")
                 
         elif engine == "WaveSpeed AI":
-            api_key = self.config.get("WAVESPEED_AI_KEY")
+            api_key = self.config.get("WAVESPEED_API_KEY") or self.config.get("WAVESPEED_AI_KEY")
             if not api_key: raise ValueError("WaveSpeed AI key is missing for Text Engine.")
             
             model_id = self.config.get("WAVESPEED_TEXT_MODEL", "meta-llama/llama-3.3-70b-instruct")
@@ -239,6 +239,7 @@ class GoogleClient:
             if not hasattr(self, 'text_model'): raise RuntimeError("Gemini API key not configured properly.")
             kwargs = {}
             if as_json: kwargs["generation_config"] = {"response_mime_type": "application/json"}
+            kwargs["request_options"] = {"timeout": 120}
             response = self.text_model.generate_content(prompt, **kwargs)
             return response.text
 
@@ -531,7 +532,7 @@ Generate the complete script now, ensuring all vocal directions match the '{cont
     def gemini_nanobanana_image(self, prompt: str, output_path: str):
         logging.info(f"Generating image with Gemini API (gemini-2.5-flash-image-preview): '{prompt}'")
         model = genai.GenerativeModel(NANO_BANANA_IMAGE_MODEL, safety_settings=self.safety_settings)
-        response = model.generate_content(prompt)
+        response = model.generate_content(prompt, request_options={"timeout": 120})
         
         image_part = response.candidates[0].content.parts[0]
         if "image" not in image_part.mime_type:
@@ -706,7 +707,8 @@ Generate the final video prompt now.
         logging.info("Sending video generation request to Vertex AI...")
         response = model.generate_content(
             [final_prompt],
-            generation_config={"response_mime_type": "video/mp4"}
+            generation_config={"response_mime_type": "video/mp4"},
+            request_options={"timeout": 120},
         )
 
         video_part = response.candidates[0].content.parts[0]
@@ -721,34 +723,53 @@ Generate the final video prompt now.
 
 class WaveSpeedClient:
     """Client for securely interacting with the WaveSpeed AI routing endpoints."""
-    def __init__(self, api_key):
+    def __init__(self, api_key, stop_event=None):
         self.api_key = api_key
+        self.stop_event = stop_event
+
+    def _check_cancelled(self):
+        if self.stop_event is not None and self.stop_event.is_set():
+            raise InterruptedError("WaveSpeed operation cancelled locally; remote task may still finish")
+
+    def _wait_or_cancel(self, seconds: float):
+        if self.stop_event is not None:
+            if self.stop_event.wait(seconds):
+                self._check_cancelled()
+        else:
+            time.sleep(seconds)
 
     def _poll_and_download(self, req_id: str, output_path: str, timeout: int = 600):
         headers = {"Authorization": f"Bearer {self.api_key}", "Content-Type": "application/json"}
         poll_url = WAVESPEED_POLL_URL.format(req_id)
         start_time = time.time()
         while time.time() - start_time < timeout:
-            poll_response = requests.get(poll_url, headers=headers, timeout=60)
+            self._check_cancelled()
+            poll_response = requests.get(poll_url, headers=headers, timeout=30)
             poll_response.raise_for_status()
             status = poll_response.json().get("data", {}).get("status")
             if status == "completed":
+                self._check_cancelled()
                 logging.info("Generation completed dynamically. Downloading output asset...")
                 data = poll_response.json().get("data", {})
                 outputs = data.get("outputs", [])
                 if not outputs:
                     raise RuntimeError("WaveSpeed Model task completed but returned no outputs.")
                 url = outputs[0] if isinstance(outputs, list) else outputs.get("url", str(outputs))
-                with open(output_path, "wb") as f: f.write(requests.get(url).content)
+                self._check_cancelled()
+                download = requests.get(url, timeout=60)
+                self._check_cancelled()
+                download.raise_for_status()
+                with open(output_path, "wb") as f: f.write(download.content)
                 logging.info(f"Asset successfully saved to {output_path}"); return
             elif status == "failed":
                 raise RuntimeError(f"WaveSpeed Model task failed: {poll_response.json()['data'].get('error')}")
             else:
                 logging.info(f"Task status is '{status}'. Yielding and Waiting...")
-                time.sleep(10)
+                self._wait_or_cancel(10)
         raise TimeoutError("WaveSpeed model request timed out tracking loop.")
 
     def text_to_video(self, model_id: str, prompt: str, output_path: str, size: str):
+        self._check_cancelled()
         if not self.api_key: raise ValueError("WaveSpeed AI key is missing.")
         headers = {"Authorization": f"Bearer {self.api_key}", "Content-Type": "application/json"}
         api_url = WAVESPEED_BASE_ENDPOINT.format(model_id)
@@ -772,6 +793,7 @@ class WaveSpeedClient:
         self._poll_and_download(req_id, output_path, timeout=600)
 
     def text_to_image(self, model_id: str, prompt: str, output_path: str):
+        self._check_cancelled()
         if not self.api_key: raise ValueError("WaveSpeed AI key is missing.")
         headers = {"Authorization": f"Bearer {self.api_key}", "Content-Type": "application/json"}
         api_url = WAVESPEED_BASE_ENDPOINT.format(model_id)
@@ -783,6 +805,7 @@ class WaveSpeedClient:
         self._poll_and_download(req_id, output_path, timeout=600)
 
     def text_to_speech(self, model_id: str, text: str, output_path: str, voice: str = "Brian"):
+        self._check_cancelled()
         if not self.api_key: raise ValueError("WaveSpeed AI key is missing.")
         headers = {"Authorization": f"Bearer {self.api_key}", "Content-Type": "application/json"}
         api_url = WAVESPEED_BASE_ENDPOINT.format(model_id)
@@ -794,7 +817,11 @@ class WaveSpeedClient:
         resp_json = initial_response.json()
         if "url" in resp_json:
              url = resp_json["url"]
-             with open(output_path, "wb") as f: f.write(requests.get(url).content)
+             self._check_cancelled()
+             download = requests.get(url, timeout=60)
+             self._check_cancelled()
+             download.raise_for_status()
+             with open(output_path, "wb") as f: f.write(download.content)
              return
              
         req_id = resp_json.get("data", {}).get("id")
