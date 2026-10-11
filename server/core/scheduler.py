@@ -1,150 +1,246 @@
-import os
+"""Paused-by-default local campaign scheduler with durable due-run idempotency."""
+
+from __future__ import annotations
+
+import copy
 import json
-import time
-import threading
-import uuid
-import datetime
-import traceback
 import logging
+import math
+import os
+import tempfile
+import threading
+import time
+import uuid
+from pathlib import Path
+from typing import Any
 
-from config import load_config
-from agents import TrendAgent
-from server.core.queue import create_job, submit_to_queue
-from server.routers.generation import run_pipeline_task, GenerationRequest
+from config import ConfigValidationError, effective_config, validate_provider_config
 
-CAMPAIGNS_FILE = "campaigns.json"
+CAMPAIGNS_FILE = os.environ.get("MEDIENWERK_CAMPAIGNS_FILE", "campaigns.json")
+CAMPAIGN_PRESETS = {
+    "Tech News Short", "Scary Story", "Motivation / Hustle", "Historical Deep Dive",
+}
+SCHEDULER_VERSION = 2
+
 
 class CampaignManager:
-    def __init__(self):
-        self.campaigns = []
+    def __init__(self, campaigns_file: str | os.PathLike[str] | None = None):
+        self.path = Path(campaigns_file or CAMPAIGNS_FILE)
+        self.campaigns: list[dict[str, Any]] = []
+        self._lock = threading.RLock()
+        self._tick_lock = threading.Lock()
         self.load()
 
-    def load(self):
-        if os.path.exists(CAMPAIGNS_FILE):
-            try:
-                with open(CAMPAIGNS_FILE, "r") as f:
-                    self.campaigns = json.load(f)
-            except Exception as e:
-                print(f"Error loading campaigns: {e}")
+    def load(self) -> None:
+        with self._lock:
+            if not self.path.exists():
                 self.campaigns = []
+                return
+            try:
+                data = json.loads(self.path.read_text(encoding="utf-8"))
+            except (OSError, json.JSONDecodeError) as exc:
+                raise RuntimeError(f"Could not read campaigns file '{self.path}'") from exc
+            if not isinstance(data, list) or any(not isinstance(item, dict) for item in data):
+                raise RuntimeError("Campaigns file must contain a JSON list of campaign objects")
+            migrated = False
+            for campaign in data:
+                try:
+                    campaign.setdefault("id", str(uuid.uuid4()))
+                    campaign["frequency_hours"] = float(campaign.get("frequency_hours", 24))
+                    campaign.setdefault("next_run", time.time() + campaign["frequency_hours"] * 3600)
+                    campaign.setdefault("last_run", None)
+                    campaign.setdefault("last_topic", None)
+                    campaign.setdefault("preset", "Historical Deep Dive")
+                    campaign.setdefault("active", False)
+                except (TypeError, ValueError):
+                    campaign["active"] = False
+                    campaign["frequency_hours"] = 24.0
+                    campaign["next_run"] = time.time() + 86400
+                if int(campaign.get("schema_version", 0) or 0) < SCHEDULER_VERSION:
+                    if campaign.get("active"):
+                        campaign["active_before_stabilization"] = True
+                        campaign["active"] = False
+                    campaign["schema_version"] = SCHEDULER_VERSION
+                    migrated = True
+            self.campaigns = data
+            if migrated:
+                self._save_locked()
 
-    def save(self):
-        with open(CAMPAIGNS_FILE, "w") as f:
-            json.dump(self.campaigns, f, indent=4)
+    def _save_locked(self) -> None:
+        self.path.parent.mkdir(parents=True, exist_ok=True)
+        temporary_path = None
+        try:
+            with tempfile.NamedTemporaryFile(
+                mode="w", encoding="utf-8", dir=self.path.parent,
+                prefix=f".{self.path.name}.", suffix=".tmp", delete=False,
+            ) as stream:
+                temporary_path = stream.name
+                json.dump(self.campaigns, stream, ensure_ascii=False, indent=2)
+                stream.write("\n")
+                stream.flush()
+                os.fsync(stream.fileno())
+            os.replace(temporary_path, self.path)
+            temporary_path = None
+        except OSError as exc:
+            raise RuntimeError(f"Could not save campaigns file '{self.path}'") from exc
+        finally:
+            if temporary_path is not None:
+                try:
+                    os.unlink(temporary_path)
+                except OSError:
+                    pass
 
-    def add_campaign(self, name, niche, preset, frequency_hours):
-        c = {
+    def save(self) -> None:
+        with self._lock:
+            self._save_locked()
+
+    def add_campaign(self, name: str, niche: str, preset: str, frequency_hours: float) -> dict[str, Any]:
+        name = str(name).strip()
+        niche = str(niche).strip()
+        try:
+            frequency = float(frequency_hours)
+        except (TypeError, ValueError) as exc:
+            raise ValueError("Campaign frequency must be a positive number of hours") from exc
+        if not name or len(name) > 120:
+            raise ValueError("Campaign name must contain 1 to 120 characters")
+        if not niche or len(niche) > 500:
+            raise ValueError("Campaign niche must contain 1 to 500 characters")
+        if preset not in CAMPAIGN_PRESETS:
+            raise ValueError("Unsupported campaign preset")
+        if not math.isfinite(frequency) or frequency <= 0 or frequency > 8760:
+            raise ValueError("Campaign frequency must be greater than 0 and at most 8760 hours")
+        now = time.time()
+        campaign = {
             "id": str(uuid.uuid4()),
             "name": name,
             "niche": niche,
             "preset": preset,
-            "frequency_hours": float(frequency_hours),
-            "next_run": time.time(), # Run immediately on creation
-            "active": True,
+            "frequency_hours": frequency,
+            "next_run": now + frequency * 3600,
+            "active": False,
             "last_run": None,
-            "last_topic": None
+            "last_topic": None,
+            "last_job_id": None,
+            "schema_version": SCHEDULER_VERSION,
         }
-        self.campaigns.append(c)
-        self.save()
-        return c
+        with self._lock:
+            self.campaigns.append(campaign)
+            self._save_locked()
+        return copy.deepcopy(campaign)
 
-    def get_campaigns(self):
-        return self.campaigns
+    def get_campaigns(self) -> list[dict[str, Any]]:
+        with self._lock:
+            return copy.deepcopy(self.campaigns)
 
-    def toggle(self, cid):
-        for c in self.campaigns:
-            if c["id"] == cid:
-                c["active"] = not c["active"]
-                self.save()
-                return c
-        return None
+    def toggle(self, campaign_id: str) -> dict[str, Any] | None:
+        with self._lock:
+            campaign = next((item for item in self.campaigns if item["id"] == campaign_id), None)
+            if campaign is None:
+                return None
+            if not campaign.get("active"):
+                from server.routers.generation import _request_config
+                request = _request_for_campaign(campaign)
+                config = _request_config(request)
+                validate_provider_config(config, kind="quick")
+                campaign["active"] = True
+                campaign["next_run"] = time.time() + float(campaign["frequency_hours"]) * 3600
+                campaign.pop("last_error", None)
+            else:
+                campaign["active"] = False
+            self._save_locked()
+            return copy.deepcopy(campaign)
 
-    def delete(self, cid):
-        self.campaigns = [c for c in self.campaigns if c["id"] != cid]
-        self.save()
+    def delete(self, campaign_id: str) -> bool:
+        with self._lock:
+            before = len(self.campaigns)
+            self.campaigns = [item for item in self.campaigns if item["id"] != campaign_id]
+            if len(self.campaigns) == before:
+                return False
+            self._save_locked()
+            return True
+
+    def run_due(self, now: float | None = None) -> list[dict[str, Any]]:
+        """Queue at most one Quick Creator job for each persisted due timestamp."""
+        from server.routers.generation import start_quick_generation
+
+        current_time = time.time() if now is None else float(now)
+        queued: list[dict[str, Any]] = []
+        if not self._tick_lock.acquire(blocking=False):
+            return queued
+        try:
+            with self._lock:
+                due = [copy.deepcopy(item) for item in self.campaigns if item.get("active") and float(item.get("next_run", 0)) <= current_time]
+            for campaign in due:
+                due_at = float(campaign["next_run"])
+                stable_key = f"campaign:{campaign['id']}:{int(due_at * 1000)}"
+                try:
+                    request = _request_for_campaign(campaign)
+                    result = start_quick_generation(request, idempotency_key=stable_key)
+                    with self._lock:
+                        live = next((item for item in self.campaigns if item["id"] == campaign["id"]), None)
+                        if live is None:
+                            continue
+                        live["last_run"] = current_time
+                        live["last_topic"] = request.topic
+                        live["last_job_id"] = result["job_id"]
+                        live["next_run"] = current_time + float(live["frequency_hours"]) * 3600
+                        live.pop("last_error", None)
+                        self._save_locked()
+                    queued.append(result)
+                except Exception as exc:
+                    logging.exception("Campaign %s could not schedule a job", campaign.get("id"))
+                    with self._lock:
+                        live = next((item for item in self.campaigns if item["id"] == campaign["id"]), None)
+                        if live is not None:
+                            live["active"] = False
+                            live["last_error"] = str(exc)
+                            self._save_locked()
+            return queued
+        finally:
+            self._tick_lock.release()
+
+
+def _request_for_campaign(campaign: dict[str, Any]):
+    from server.routers.generation import GenerationRequest
+
+    request = GenerationRequest(topic=campaign["niche"], content_style="Podcast", voice="Kore", aspect_ratio="16:9")
+    preset = campaign.get("preset")
+    if preset == "Tech News Short":
+        request.content_style = "Viral Video"
+        request.style = "TikTok Viral"
+        request.aspect_ratio = "9:16"
+    elif preset == "Scary Story":
+        request.content_style = "Story"
+        request.aspect_ratio = "9:16"
+    elif preset == "Motivation / Hustle":
+        request.content_style = "Viral Video"
+        request.style = "Cyberpunk / Neon"
+        request.aspect_ratio = "9:16"
+    return request
+
 
 campaign_mgr = CampaignManager()
+_scheduler_thread: threading.Thread | None = None
+_scheduler_start_lock = threading.Lock()
 
-class DummyUI:
-    def log_to_agent_console(self, msg): pass
-    def update_agent_node(self, name, status, state): pass
 
-def scheduler_loop():
-    while True:
+def scheduler_loop(stop_event: threading.Event | None = None, interval_seconds: float = 60) -> None:
+    while stop_event is None or not stop_event.is_set():
         try:
-            now = time.time()
-            for c in campaign_mgr.campaigns:
-                if c["active"] and now >= c.get("next_run", 0):
-                    logging.info(f"[Auto-Pilot] Campaign '{c['name']}' triggered! Fetching topic in niche: {c['niche']}")
-                    
-                    try:
-                        # 1. Fetch a viral topic via TrendAgent
-                        config = load_config()
-                        # Pass niche to TrendAgent by wrapping it in a custom prompt or just relying on its logic
-                        # For simplicity, we just use the niche directly as the topic or prefix it
-                        # TrendAgent usually gets generic topics, but we'll adapt:
-                        trend = TrendAgent(config, DummyUI(), "TrendAgent")
-                        # Override the find_viral_topics locally to use the niche
-                        prompt = f"Generate 1 highly engaging viral video title about: {c['niche']}. Output only the title."
-                        topic = trend.google_client._generate_text(prompt).strip().strip('"').strip("'")
-                        
-                        logging.info(f"[Auto-Pilot] Selected topic: {topic}")
-                        
-                        # 2. Build GenerationRequest based on preset
-                        # Defaults
-                        req = GenerationRequest(
-                            topic=topic,
-                            start_point="Deep Research",
-                            content_style="Podcast",
-                            style="Cinematic Documentary",
-                            voice="Kore",
-                            aspect_ratio="16:9",
-                            omnichannel=False,
-                            bg_music=True,
-                            auto_captions=True,
-                            generate_seo=True,
-                            generate_timestamps=True
-                        )
-                        
-                        if c["preset"] == "Tech News Short":
-                            req.content_style = "Viral Video"
-                            req.style = "TikTok Viral"
-                            req.aspect_ratio = "9:16"
-                            req.omnichannel = True
-                        elif c["preset"] == "Scary Story":
-                            req.content_style = "Story"
-                            req.voice = "Charon"
-                            req.aspect_ratio = "9:16"
-                        elif c["preset"] == "Motivation / Hustle":
-                            req.content_style = "Viral Video"
-                            req.style = "Cyberpunk / Neon"
-                            req.voice = "Fenrir"
-                            req.aspect_ratio = "9:16"
-                            req.omnichannel = True
-                            
-                        # 3. Submit to queue
-                        job_id = create_job(req.topic)
-                        submit_to_queue(run_pipeline_task, job_id, req)
-                        logging.info(f"[Auto-Pilot] Job {job_id} queued successfully for campaign '{c['name']}'.")
-                        
-                        # 4. Update campaign
-                        c["last_run"] = now
-                        c["last_topic"] = topic
-                        c["next_run"] = now + (c["frequency_hours"] * 3600)
-                        campaign_mgr.save()
-                        
-                    except Exception as e:
-                        logging.error(f"[Auto-Pilot] Campaign '{c['name']}' failed: {e}")
-                        # Push next run back slightly to avoid rapid retry loops on failure
-                        c["next_run"] = now + 300 # Try again in 5 minutes
-                        campaign_mgr.save()
-                        
-        except Exception as e:
-            traceback.print_exc()
-            
-        time.sleep(60) # Check every 1 minute
+            campaign_mgr.run_due()
+        except Exception:
+            logging.exception("Campaign scheduler tick failed")
+        if stop_event is not None:
+            stop_event.wait(interval_seconds)
+        else:
+            time.sleep(interval_seconds)
 
-def start_scheduler():
-    t = threading.Thread(target=scheduler_loop, daemon=True)
-    t.start()
-    logging.info("[Auto-Pilot] Autonomous Scheduler Engine started.")
+
+def start_scheduler() -> None:
+    global _scheduler_thread
+    with _scheduler_start_lock:
+        if _scheduler_thread and _scheduler_thread.is_alive():
+            return
+        _scheduler_thread = threading.Thread(target=scheduler_loop, daemon=True, name="medienwerk-campaign-scheduler")
+        _scheduler_thread.start()
+    logging.info("Campaign scheduler started; campaigns require explicit activation")

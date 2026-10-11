@@ -11,6 +11,15 @@ from server.core.youtube_downloader import download_youtube_video
 from pipeline import generate_captions
 from api_clients import GoogleClient
 from config import load_config
+from server.core.process_runner import run_process
+
+
+def _run_process(args, stop_event=None, **kwargs):
+    if stop_event is not None and stop_event.is_set():
+        raise InterruptedError("Clipper job was cancelled")
+    return run_process(args, stop_event=stop_event, timeout=3600,
+                       capture_output=kwargs.get("capture_output", True),
+                       check=kwargs.get("check", True))
 
 def fetch_b_roll_video(query: str, api_key: str, output_path: str) -> bool:
     if not api_key: return False
@@ -29,17 +38,17 @@ def fetch_b_roll_video(query: str, api_key: str, output_path: str) -> bool:
         logging.error(f"Failed to fetch B-Roll: {e}")
     return False
 
-def render_scene_aware_clip(video_path: str, start_time: float, end_time: float, out_path: str):
+def render_scene_aware_clip(video_path: str, start_time: float, end_time: float, out_path: str, *, stop_event=None):
     """OpusClip-style AI Active Speaker Tracking using Scene-Aware Cropping."""
     import tempfile
     
-    with tempfile.NamedTemporaryFile(suffix=".mp4", delete=False) as tmp:
+    with tempfile.NamedTemporaryFile(suffix=".mp4", dir=os.path.dirname(out_path), delete=False) as tmp:
         segment_path = tmp.name
         
-    subprocess.run([
+    _run_process([
         "ffmpeg", "-y", "-ss", str(start_time), "-to", str(end_time),
         "-i", video_path, "-c:v", "libx264", "-preset", "ultrafast", "-c:a", "aac", segment_path
-    ], check=True, capture_output=True)
+    ], stop_event)
     
     cap = cv2.VideoCapture(segment_path)
     fps = cap.get(cv2.CAP_PROP_FPS) or 30.0
@@ -57,6 +66,10 @@ def render_scene_aware_clip(video_path: str, start_time: float, end_time: float,
     skip_frames = int(fps / 2) # Sample twice per second
     
     while True:
+        if stop_event is not None and stop_event.is_set():
+            cap.release()
+            os.remove(segment_path)
+            raise InterruptedError("Clipper render was cancelled")
         cap.set(cv2.CAP_PROP_POS_FRAMES, frame_idx)
         ret, frame = cap.read()
         if not ret: break
@@ -87,11 +100,11 @@ def render_scene_aware_clip(video_path: str, start_time: float, end_time: float,
     cuts.append({"start": current_cut_start, "end": duration, "crop_x": current_crop_x})
     
     if len(cuts) == 1:
-        subprocess.run([
+        _run_process([
             "ffmpeg", "-y", "-i", segment_path,
             "-vf", f"crop={target_w}:{height}:{int(cuts[0]['crop_x'])}:0,scale=720:1280",
             "-c:v", "libx264", "-c:a", "copy", out_path
-        ], check=True, capture_output=True)
+        ], stop_event)
     else:
         filter_parts = []
         concat_inputs = ""
@@ -100,20 +113,20 @@ def render_scene_aware_clip(video_path: str, start_time: float, end_time: float,
             concat_inputs += f"[v{i}]"
             
         filter_parts.append(f"{concat_inputs}concat=n={len(cuts)}:v=1:a=0[outv]")
-        subprocess.run([
+        _run_process([
             "ffmpeg", "-y", "-i", segment_path,
             "-filter_complex", ";".join(filter_parts),
             "-map", "[outv]", "-map", "0:a",
             "-c:v", "libx264", "-c:a", "copy", out_path
-        ], check=True, capture_output=True)
+        ], stop_event)
         
     os.remove(segment_path)
 
-def analyze_video(source: str, is_local: bool, job_id: str, update_job_callback, num_clips: int = 10):
+def analyze_video(source: str, is_local: bool, job_id: str, update_job_callback, num_clips: int = 10, *, config=None, output_dir=None, language="English", stop_event=None):
     try:
-        config = load_config()
+        config = dict(config) if config is not None else load_config()
         client = GoogleClient(config)
-        output_dir = os.path.join("workspace", f"clipper_{job_id}")
+        output_dir = output_dir or os.path.join("workspace", f"clipper_{job_id}")
         os.makedirs(output_dir, exist_ok=True)
         
         if is_local:
@@ -121,11 +134,15 @@ def analyze_video(source: str, is_local: bool, job_id: str, update_job_callback,
             video_path = source
         else:
             update_job_callback(job_id, step="Downloading Video", progress=0.1)
-            video_path = download_youtube_video(source, output_dir)
+            video_path = download_youtube_video(source, output_dir, stop_event=stop_event)
         
         update_job_callback(job_id, step="Transcribing Video", progress=0.3)
         # Transcribe without generating an ASS file first, just to get the transcript
-        word_timestamps = generate_captions(video_path, None, "English")
+        if stop_event is not None and stop_event.is_set():
+            raise InterruptedError("Clipper analysis was cancelled")
+        word_timestamps = generate_captions(video_path, None, language)
+        if stop_event is not None and stop_event.is_set():
+            raise InterruptedError("Clipper analysis was cancelled")
         
         if not word_timestamps:
             raise Exception("Transcription failed or returned no words.")
@@ -183,6 +200,8 @@ Transcript snippet (first 15000 chars):
 {full_transcript[:15000]}
 """
         response = client._generate_text(prompt).strip()
+        if stop_event is not None and stop_event.is_set():
+            raise InterruptedError("Clipper analysis was cancelled")
         # Clean up possible markdown
         if response.startswith("```json"):
             response = response[7:]
@@ -201,11 +220,10 @@ Transcript snippet (first 15000 chars):
         traceback.print_exc()
         raise e
 
-def render_youtube_clips(job_id: str, video_path: str, selected_clips: list, update_job_callback):
+def render_youtube_clips(job_id: str, video_path: str, selected_clips: list, update_job_callback, *, config=None, output_dir=None, language="English", stop_event=None):
     try:
-        config = load_config()
-        client = GoogleClient(config)
-        output_dir = os.path.join("workspace", f"clipper_{job_id}")
+        config = dict(config) if config is not None else load_config()
+        output_dir = output_dir or os.path.join("workspace", f"clipper_{job_id}")
         os.makedirs(output_dir, exist_ok=True)
         
         update_job_callback(job_id, step="Cropping & Captioning", progress=0.7)
@@ -214,21 +232,24 @@ def render_youtube_clips(job_id: str, video_path: str, selected_clips: list, upd
         total_clips = len(selected_clips)
         
         for idx, clip in enumerate(selected_clips):
+            if stop_event is not None and stop_event.is_set():
+                raise InterruptedError("Clipper render was cancelled")
             try:
                 start = float(clip.get("start", 0))
                 end = float(clip.get("end", 30))
                 title = str(clip.get("title") or f"Clip {idx+1}")
                 
                 safe_title = re.sub(r'[^a-zA-Z0-9_]', '', title.replace(" ", "_"))
-                clip_name = f"{safe_title}.mp4"
+                clip_name = f"{idx:02d}_{safe_title or 'clip'}.mp4"
             except (ValueError, TypeError) as e:
                 logging.warning(f"Skipping malformed clip data: {clip} - {e}")
                 continue
                 
             out_path = os.path.join(output_dir, clip_name)
+            optional_warnings = []
             
             # Use OpusClip-style AI Active Speaker Tracking
-            render_scene_aware_clip(video_path, start, end, out_path)
+            render_scene_aware_clip(video_path, start, end, out_path, stop_event=stop_event)
             
             # --- PHASE 4: DYNAMIC B-ROLL TIMELINE ---
             try:
@@ -247,33 +268,37 @@ def render_youtube_clips(job_id: str, video_path: str, selected_clips: list, upd
                         b_roll_path = os.path.join(output_dir, f"broll_{idx}_{b_idx}.mp4")
                         if fetch_b_roll_video(b_subj, pixabay_key, b_roll_path):
                             b_roll_overlay_path = os.path.join(output_dir, f"broll_overlay_{idx}_{b_idx}.mp4")
-                            subprocess.run([
+                            _run_process([
                                 "ffmpeg", "-y", "-i", current_vid, "-i", b_roll_path,
                                 "-filter_complex", 
                                 f"[1:v]crop=ih*9/16:ih,scale=720:1280[broll];[0:v][broll]overlay=enable='between(t,{b_start},{b_end})'",
                                 "-c:a", "copy",
                                 b_roll_overlay_path
-                            ], check=True, capture_output=True)
+                            ], stop_event)
                             current_vid = b_roll_overlay_path
+                        else:
+                            optional_warnings.append(f"Optional B-roll was unavailable for {b_subj}.")
                     out_path = current_vid
             except Exception as e:
                 logging.error(f"Dynamic B-Roll injection failed for {clip_name}: {e}")
+                optional_warnings.append("Optional B-roll could not be added.")
                 
             # --- PHASE 4.5: AUDIO DUCKING (BGM) ---
             try:
                 bgm_path = "workspace/bgm.mp3"
                 if os.path.exists(bgm_path):
                     bgm_out_path = os.path.join(output_dir, f"bgm_{clip_name}")
-                    subprocess.run([
+                    _run_process([
                         "ffmpeg", "-y", "-i", out_path, "-i", bgm_path,
                         "-filter_complex",
                         "[1:a]volume=0.08[bgm];[0:a][bgm]amix=inputs=2:duration=first:dropout_transition=2",
                         "-c:v", "copy",
                         bgm_out_path
-                    ], check=True, capture_output=True)
+                    ], stop_event)
                     out_path = bgm_out_path
             except Exception as e:
                 logging.error(f"Audio Ducking failed for {clip_name}: {e}")
+                optional_warnings.append("Optional background audio could not be mixed.")
             
             theme = config.get("CAPTION_THEME", "default")
             font = config.get("CAPTION_FONT", "Arial")
@@ -297,7 +322,7 @@ def render_youtube_clips(job_id: str, video_path: str, selected_clips: list, upd
                 outline = 1.5
 
             ass_path = os.path.join(output_dir, f"{safe_title}.ass")
-            generate_captions(out_path, ass_path, "English", style_opts={
+            generate_captions(out_path, ass_path, language, style_opts={
                 "fontname": font, 
                 "fontsize": font_size, 
                 "alignment": 2, 
@@ -312,12 +337,12 @@ def render_youtube_clips(job_id: str, video_path: str, selected_clips: list, upd
             final_out_path = os.path.join(output_dir, f"Final_{clip_name}")
             subs_path = os.path.abspath(ass_path).replace('\\', '/').replace(':', '\\:')
             
-            subprocess.run([
+            _run_process([
                 "ffmpeg", "-y", "-i", out_path,
                 "-vf", f"subtitles='{subs_path}'",
                 "-c:v", "libx264", "-c:a", "copy",
                 final_out_path
-            ], check=True, capture_output=True)
+            ], stop_event)
             
             generated_clips.append({
                 "title": title,
@@ -325,15 +350,19 @@ def render_youtube_clips(job_id: str, video_path: str, selected_clips: list, upd
                 "seo_title": clip.get("seo_title", title),
                 "seo_description": clip.get("seo_description", ""),
                 "seo_tags": clip.get("seo_tags", ""),
+                "warnings": optional_warnings,
             })
             
             progress = 0.7 + (0.3 * ((idx + 1) / total_clips))
             update_job_callback(job_id, step=f"Rendered {idx+1}/{total_clips} Clips", progress=progress)
             
-        update_job_callback(job_id, step="Finished", progress=1.0, result=json.dumps({"type": "finished", "clips": generated_clips}))
+        return generated_clips
         
     except Exception as e:
         import traceback
         traceback.print_exc()
         logging.error(f"Clipper Error: {e}", exc_info=True)
+        if stop_event is not None and stop_event.is_set():
+            raise InterruptedError("Clipper render was cancelled") from e
         update_job_callback(job_id, step="Failed", progress=1.0, error=str(e))
+        raise

@@ -2,7 +2,7 @@ import os
 import yt_dlp
 import logging
 
-def download_youtube_video(url: str, output_dir: str, max_duration_mins: int = 120) -> str:
+def download_youtube_video(url: str, output_dir: str, max_duration_mins: int = 120, *, stop_event=None) -> str:
     """
     Downloads a YouTube video to the output_dir.
     Returns the path to the downloaded .mp4 file.
@@ -17,6 +17,11 @@ def download_youtube_video(url: str, output_dir: str, max_duration_mins: int = 1
         'quiet': False,
         'no_warnings': True,
     }
+    if stop_event is not None:
+        def check_cancelled(_status):
+            if stop_event.is_set():
+                raise InterruptedError("Video download was cancelled")
+        ydl_opts['progress_hooks'] = [check_cancelled]
 
     logging.info(f"[Clipper] Downloading YouTube video: {url}")
     with yt_dlp.YoutubeDL(ydl_opts) as ydl:

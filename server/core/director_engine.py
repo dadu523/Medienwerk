@@ -6,16 +6,30 @@ import shutil
 from pydub import AudioSegment
 from pydub.silence import detect_silence
 from server.core.youtube_downloader import download_youtube_video
+from server.core.process_runner import run_process
+from server.core.media_store import probe_media
 
-def run_director_pipeline(url: str, job_id: str, update_job_callback, remove_silence=True, add_punch_ins=True, add_sfx=True):
+def _run_process(args, stop_event=None):
+    if stop_event is not None and stop_event.is_set():
+        raise InterruptedError("Director job was cancelled")
+    return run_process(args, stop_event=stop_event, timeout=3600, capture_output=True)
+
+
+def run_director_pipeline(url: str, job_id: str, update_job_callback, remove_silence=True, add_punch_ins=True, add_sfx=True, *, output_dir=None, source_dir=None, final_path=None, stop_event=None, config=None):
     try:
-        output_dir = os.path.join("workspace", f"director_{job_id}")
+        output_dir = output_dir or os.path.join("workspace", f"director_{job_id}")
+        source_dir = source_dir or output_dir
         os.makedirs(output_dir, exist_ok=True)
+        os.makedirs(source_dir, exist_ok=True)
         
         update_job_callback(job_id, step="Downloading Raw Video", progress=0.1)
-        video_path = download_youtube_video(url, output_dir)
+        video_path = download_youtube_video(url, source_dir, stop_event=stop_event)
+        source_probe = probe_media(video_path, expected_kind="video")
+        source_has_audio = any(stream.get("type") == "audio" for stream in source_probe["metadata"]["streams"])
+        if (remove_silence or add_sfx) and not source_has_audio:
+            raise ValueError("Director silence removal and sound effects require an audio stream")
         
-        final_out_path = os.path.join(output_dir, "final_master.mp4")
+        final_out_path = final_path or os.path.join(output_dir, "final_master.mp4")
         current_video_path = video_path
         
         # Phase 2: Silence Trimmer Engine
@@ -23,7 +37,7 @@ def run_director_pipeline(url: str, job_id: str, update_job_callback, remove_sil
             update_job_callback(job_id, step="Scanning Audio Waveform for Dead Air", progress=0.3)
             # Extract audio
             audio_path = os.path.join(output_dir, "temp_audio.wav")
-            subprocess.run(["ffmpeg", "-y", "-i", current_video_path, "-ac", "1", "-ar", "44100", audio_path], check=True, capture_output=True)
+            _run_process(["ffmpeg", "-y", "-i", current_video_path, "-ac", "1", "-ar", "44100", audio_path], stop_event)
             
             # Detect silence
             audio = AudioSegment.from_wav(audio_path)
@@ -47,13 +61,13 @@ def run_director_pipeline(url: str, job_id: str, update_job_callback, remove_sil
                         if start_s - last_end > 0.5: # Must have at least 0.5s of talking
                             chunk_path = os.path.join(output_dir, f"chunk_{i}.mp4")
                             # We re-encode to ensure precise cuts, using veryfast to speed it up
-                            subprocess.run([
+                            _run_process([
                                 "ffmpeg", "-y", "-ss", str(last_end), "-to", str(start_s),
                                 "-i", current_video_path,
                                 "-c:v", "libx264", "-preset", "veryfast", "-crf", "23",
                                 "-c:a", "aac",
                                 chunk_path
-                            ], check=True, capture_output=True)
+                            ], stop_event)
                             f.write(f"file '{os.path.basename(chunk_path)}'\n")
                             non_silent_chunks.append(chunk_path)
                             
@@ -61,19 +75,19 @@ def run_director_pipeline(url: str, job_id: str, update_job_callback, remove_sil
                         
                     if video_duration - last_end > 0.5:
                         chunk_path = os.path.join(output_dir, f"chunk_final.mp4")
-                        subprocess.run([
+                        _run_process([
                             "ffmpeg", "-y", "-ss", str(last_end),
                             "-i", current_video_path,
                             "-c:v", "libx264", "-preset", "veryfast", "-crf", "23",
                             "-c:a", "aac",
                             chunk_path
-                        ], check=True, capture_output=True)
+                        ], stop_event)
                         f.write(f"file '{os.path.basename(chunk_path)}'\n")
                         non_silent_chunks.append(chunk_path)
                 
                 # Concat all non-silent chunks
                 trimmed_path = os.path.join(output_dir, "trimmed.mp4")
-                subprocess.run(["ffmpeg", "-y", "-f", "concat", "-safe", "0", "-i", concat_path, "-c", "copy", trimmed_path], check=True, capture_output=True)
+                _run_process(["ffmpeg", "-y", "-f", "concat", "-safe", "0", "-i", concat_path, "-c", "copy", trimmed_path], stop_event)
                 
                 current_video_path = trimmed_path
 
@@ -81,8 +95,12 @@ def run_director_pipeline(url: str, job_id: str, update_job_callback, remove_sil
         if add_punch_ins or add_sfx:
             update_job_callback(job_id, step="Transcribing Audio for Smart Cuts", progress=0.6)
             import whisper
+            if stop_event is not None and stop_event.is_set():
+                raise InterruptedError("Director job was cancelled")
             model = whisper.load_model("base")
             result = model.transcribe(current_video_path, word_timestamps=True)
+            if stop_event is not None and stop_event.is_set():
+                raise InterruptedError("Director job was cancelled")
             
             high_impact = ["money", "secret", "viral", "crazy", "explosive", "hack", "truth", "insane"]
             
@@ -140,7 +158,7 @@ def run_director_pipeline(url: str, job_id: str, update_job_callback, remove_sil
                 final_magic_path = os.path.join(output_dir, "magic_master.mp4")
                 cmd.extend(["-filter_complex", filter_complex, "-map", "[vout]", "-map", "[aout]", "-c:v", "libx264", "-c:a", "aac", final_magic_path])
                 
-                subprocess.run(cmd, check=True, capture_output=True)
+                _run_process(cmd, stop_event)
                 current_video_path = final_magic_path
                 
         shutil.copy(current_video_path, final_out_path)
@@ -151,4 +169,7 @@ def run_director_pipeline(url: str, job_id: str, update_job_callback, remove_sil
         import traceback
         traceback.print_exc()
         logging.error(f"Director Error: {e}")
+        if stop_event is not None and stop_event.is_set():
+            raise InterruptedError("Director job was cancelled") from e
         update_job_callback(job_id, step="Failed", progress=1.0, error=str(e))
+        raise

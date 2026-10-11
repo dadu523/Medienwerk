@@ -2,10 +2,13 @@ import sys
 import os
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
+from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
 
-from server.routers import generation
+# Database and routers initialize files during import.
+os.makedirs(os.getenv("MEDIENWERK_WORKSPACE", "workspace"), exist_ok=True)
+
 from server.routers import generation, publish, tools, brand, studio, campaigns, clipper, director
 
 # Ensure workspace dir exists
@@ -21,12 +24,17 @@ from server.core.scheduler import start_scheduler
 
 @app.on_event("startup")
 def on_startup():
-    start_scheduler()
+    from server.core.database import init_database
+    from server.core.queue import recover_interrupted_jobs
+    init_database()
+    recover_interrupted_jobs()
+    if os.getenv("MEDIENWERK_DISABLE_SCHEDULER") != "1":
+        start_scheduler()
 
 # Allow Next.js frontend to talk to this API
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"], # In production, restrict this to the frontend URL
+    allow_origins=os.getenv("CORS_ORIGINS", "http://localhost:3000,http://127.0.0.1:3000").split(","),
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -65,21 +73,31 @@ app.include_router(campaigns.router, prefix="/api/campaigns", tags=["Campaigns"]
 from server.routers import social
 app.include_router(social.router, prefix="/api/social", tags=["Social"])
 
-from config import load_config, save_config
+from server.routers import projects
+app.include_router(projects.router, prefix="/api/projects", tags=["Projects"])
+
+from config import public_config, update_config as save_public_config, ConfigFileError
+from server.core.config_schema import ConfigValidationError
+
+@app.exception_handler(ConfigValidationError)
+async def configuration_validation_error(request: Request, exc: ConfigValidationError):
+    return JSONResponse(status_code=400, content={"detail": str(exc)})
+
+@app.exception_handler(ConfigFileError)
+async def configuration_file_error(request: Request, exc: ConfigFileError):
+    return JSONResponse(status_code=500, content={"detail": str(exc)})
 
 @app.get("/api/config")
 def get_config():
-    return load_config()
+    return public_config()
 
 @app.post("/api/config")
 def update_config(new_config: dict):
-    # Load current config to ensure we don't overwrite everything blindly
-    current = load_config()
-    current.update(new_config)
-    save_config(current)
-    return {"message": "Configuration updated successfully."}
+    config = save_public_config(new_config)
+    return {"message": "Configuration updated successfully.", "config": config}
 
 @app.get("/health")
+@app.get("/api/health")
 def health_check():
     return {"status": "ok", "service": "AI Content Studio Engine"}
 

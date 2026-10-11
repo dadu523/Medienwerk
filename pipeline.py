@@ -25,6 +25,7 @@ import pysubs2
 
 # Import the API client classes
 from api_clients import GoogleClient, WaveSpeedClient, NewsApiClient, PixabayClient
+from server.core.process_runner import ProcessCancelledError, run_process
 
 # --- Constants for Pipeline Flow ---
 PIPELINE_STEPS = [
@@ -91,7 +92,7 @@ def mix_audio_with_music(podcast_path, music_path, output_path, music_volume_db=
         return output_path
     except Exception as e:
         logging.error(f"❌ Error mixing audio: {e}")
-        return podcast_path
+        raise RuntimeError("Could not mix background music") from e
 
 def generate_captions(audio_file, captions_file, language: str, style_opts: dict = None):
     """Transcribes audio and generates a styled ASS caption file, returning word timestamps."""
@@ -191,6 +192,14 @@ def generate_captions(audio_file, captions_file, language: str, style_opts: dict
         logging.error(f"Whisper transcription failed: {e}", exc_info=True)
         return []
 
+
+def _has_caption_dialogue(captions_file: str) -> bool:
+    try:
+        content = open(captions_file, "r", encoding="utf-8").read()
+    except OSError:
+        return False
+    return "[Events]" in content and any(line.startswith("Dialogue:") for line in content.splitlines())
+
 def sanitize_ffmpeg_path(path: str) -> str:
     """
     Sanitizes a file path for use in an ffmpeg filtergraph, especially for the 'ass' filter on Windows.
@@ -213,8 +222,9 @@ class Pipeline:
         self.on_finish = on_finish_callback
         self.update_timestamps = timestamps_callback # New callback
         self.on_script_generated = on_script_generated
+        self.optional_failures = []
         self.google_client = GoogleClient(config)
-        self.wavespeed_client = WaveSpeedClient(config.get("WAVESPEED_API_KEY"))
+        self.wavespeed_client = WaveSpeedClient(config.get("WAVESPEED_API_KEY"), stop_event=stop_event)
         self.news_client = NewsApiClient(config.get("NEWS_API_KEY"))
         self.pixabay_client = PixabayClient(config.get("PIXABAY_API_KEY"))
 
@@ -222,11 +232,31 @@ class Pipeline:
         if self.stop_event.is_set():
             raise InterruptedError("Pipeline execution stopped by user.")
 
+    def _run_process(self, args, *, timeout=1200, **kwargs):
+        """Run a local child process with bounded wait and cooperative cancellation."""
+        check = kwargs.pop("check", False)
+        capture_output = kwargs.pop("capture_output", False)
+        try:
+            return run_process(
+                args,
+                stop_event=self.stop_event,
+                timeout=timeout,
+                check=check,
+                capture_output=capture_output,
+                text=kwargs.pop("text", False),
+                encoding=kwargs.pop("encoding", None),
+                **kwargs,
+            )
+        except ProcessCancelledError as exc:
+            raise InterruptedError("Pipeline execution stopped by user.") from exc
+
     def _wait(self):
         delay = self.config.get("API_DELAY", 2)
         if delay > 0:
             logging.info(f"Waiting for {delay} seconds...")
-            time.sleep(delay)
+            if self.stop_event.wait(delay):
+                raise InterruptedError("Pipeline execution stopped by user.")
+        self._check_stop()
 
     def _get_audio_length(self, path):
         try:
@@ -248,13 +278,13 @@ class Pipeline:
             logging.error(f"Invalid start point '{start_point}'. Defaulting to start.")
             return PIPELINE_STEPS
 
-    def run(self, topic: str, start_point: str):
+    def run(self, topic: str, start_point: str, output_dir: str | None = None):
         success = False
         self.word_timestamps_for_images = []
         try:
             logging.info(f"Starting pipeline for topic: '{topic}' from step: '{start_point}'")
             safe_topic = re.sub(r'[\\/:*?"<>|]', '', topic)
-            output_dir = safe_topic
+            output_dir = output_dir or safe_topic
             os.makedirs(output_dir, exist_ok=True)
             
             # --- File Paths ---
@@ -352,15 +382,16 @@ class Pipeline:
                             self.google_client.gemini_nanobanana_image(prompts['text_prompt'], right_path)
                         self._check_stop()
                         ffmpeg_cmd = ["ffmpeg", "-y", "-i", left_path, "-i", right_path, "-filter_complex", "[0:v]scale=960:1080,setsar=1[left];[1:v]scale=960:1080,setsar=1[right];[left][right]hstack=inputs=2", image_file]
-                        subprocess.run(ffmpeg_cmd, check=True, capture_output=True, text=True, encoding='utf-8')
+                        self._run_process(ffmpeg_cmd, check=True, capture_output=True, text=True, encoding='utf-8')
                         self.update_status(4, "✅", 1.0)
                     except Exception as e: 
+                        self.optional_failures.append(f"Thumbnail generation failed: {e}")
                         logging.error(f"Thumbnail generation failed: {e}", exc_info=True); self.update_status(4, "❌", 1.0)
                 else: 
                     logging.info("Thumbnail generation is disabled. Skipping."); self.update_status(4, "⏭️", 1.0)
             self._check_stop()
 
-            if "Analyze Tone" in steps_to_run: self.update_status(5, "✅", 1.0)
+            if "Analyze Tone" in steps_to_run: self.update_status(5, "⏭️ Tone analysis is not implemented", 1.0)
             
             if "Audio (TTS)" in steps_to_run and os.path.exists(audio_file):
                 logging.info(f"Skipping Audio (TTS), {audio_file} already exists.")
@@ -408,6 +439,8 @@ class Pipeline:
                             captions_file if need_captions else None,
                             whisper_lang
                         )
+                        if need_captions and not _has_caption_dialogue(captions_file):
+                            raise RuntimeError("Captions are enabled, but transcription produced no usable subtitle file")
                         try:
                             with open(timestamps_file, "w") as f:
                                 json.dump(self.word_timestamps_for_images, f)
@@ -447,7 +480,9 @@ class Pipeline:
                             else:
                                 self.google_client.gemini_nanobanana_image(image_prompt, image_output_path)
                             generated_images_with_times.append((i, image_output_path))
-                        except Exception as e: logging.error(f"Failed to generate image {image_count}: {e}")
+                        except Exception as e:
+                            self.optional_failures.append(f"Timed image {image_count} failed: {e}")
+                            logging.error(f"Failed to generate image {image_count}: {e}")
                         self._wait()
                     self.update_status(7, f"✅ {image_count} images", 1.0)
                 else:
@@ -484,7 +519,7 @@ class Pipeline:
                         prompt = self.google_client.generate_video_prompt(topic, segment_text, self.config.get("VIDEO_PROMPT_BASE_STYLE"), content_style)
                         try:
                             if self.config.get("VIDEO_ENGINE") == "Vertex AI (Veo)":
-                                self.google_client.vertex_ai_text_to_video(prompt, clip_path, "16:9" if aspect == "16:9 (Horizontal)" else "9:16")
+                                self.google_client.vertex_ai_text_to_video(prompt, clip_path, aspect)
                             else:
                                 self.wavespeed_client.text_to_video(self.config.get("WAVESPEED_VIDEO_MODEL"), prompt, clip_path, aspect)
                             clip_paths.append(clip_path)
@@ -497,11 +532,13 @@ class Pipeline:
                         concat_txt = bg_video_file.replace(".mp4", "_concat.txt")
                         with open(concat_txt, "w") as cf:
                             for cp in clip_paths: cf.write(f"file '{os.path.abspath(cp)}'\n")
-                        subprocess.run(["ffmpeg", "-y", "-f", "concat", "-safe", "0", "-i", concat_txt, "-c", "copy", bg_video_file], check=True, capture_output=True)
+                        self._run_process(["ffmpeg", "-y", "-f", "concat", "-safe", "0", "-i", concat_txt, "-c", "copy", bg_video_file], check=True, capture_output=True)
                         logging.info(f"Concatenated {len(clip_paths)} clips into {bg_video_file}")
                     elif len(clip_paths) == 1 and clip_paths[0] != bg_video_file:
                         import shutil; shutil.move(clip_paths[0], bg_video_file)
-                    self.update_status(8, f"✅ {len(clip_paths)} clip(s)", 1.0) if clip_paths else self.update_status(8, "❌", 1.0)
+                    if len(clip_paths) != clip_count:
+                        raise RuntimeError(f"Video generation produced {len(clip_paths)} of {clip_count} required clips")
+                    self.update_status(8, f"✅ {len(clip_paths)} clip(s)", 1.0)
                 elif bg_mode == "Stock Video (Pixabay)":
                     self.update_status(8, "⏳", 0.2)
                     # Dynamically calculate clip count: 1 clip per 15 seconds of audio, capped at 40
@@ -531,12 +568,12 @@ class Pipeline:
                             if success:
                                 # Normalize video to standard resolution & 24fps so they can be concatenated
                                 vf_scale = "scale=1080:1920:force_original_aspect_ratio=increase,crop=1080:1920" if is_vertical else "scale=1920:1080:force_original_aspect_ratio=increase,crop=1920:1080"
-                                subprocess.run([
+                                self._run_process([
                                     "ffmpeg", "-y", "-i", raw_clip_path, 
                                     "-vf", vf_scale, "-r", "24", 
                                     "-c:v", "libx264", "-preset", "fast", "-c:a", "copy", 
                                     clip_path
-                                ], check=True, capture_output=True)
+                                ], check=True, capture_output=True, timeout=1200)
                                 
                                 clip_paths.append(clip_path)
                                 logging.info(f"Pixabay clip {clip_idx+1}/{clip_count} downloaded and normalized.")
@@ -550,14 +587,19 @@ class Pipeline:
                         concat_txt = bg_video_file.replace(".mp4", "_concat.txt")
                         with open(concat_txt, "w") as cf:
                             for cp in clip_paths: cf.write(f"file '{os.path.abspath(cp)}'\n")
-                        subprocess.run(["ffmpeg", "-y", "-f", "concat", "-safe", "0", "-i", concat_txt, "-c", "copy", bg_video_file], check=True, capture_output=True)
+                        self._run_process(["ffmpeg", "-y", "-f", "concat", "-safe", "0", "-i", concat_txt, "-c", "copy", bg_video_file], check=True, capture_output=True)
                         logging.info(f"Concatenated {len(clip_paths)} Pixabay clips into {bg_video_file}")
                     elif len(clip_paths) == 1 and clip_paths[0] != bg_video_file:
                         import shutil; shutil.move(clip_paths[0], bg_video_file)
-                    self.update_status(8, f"✅ {len(clip_paths)} clip(s)", 1.0) if clip_paths else self.update_status(8, "❌", 1.0)
+                    if len(clip_paths) != clip_count:
+                        raise RuntimeError(f"Pixabay returned {len(clip_paths)} of {clip_count} required clips")
+                    self.update_status(8, f"✅ {len(clip_paths)} clip(s)", 1.0)
                 else:
                     logging.info(f"BG Mode is '{bg_mode}'. Skipping video generation."); self.update_status(8, "⏭️", 1.0)
             self._check_stop()
+
+            if not os.path.isfile(bg_video_file) and not generated_images_with_times:
+                raise RuntimeError("No usable visual assets were produced; refusing to render a black fallback video")
 
             final_audio = audio_file
             if "Add Background Music" in steps_to_run and self.config.get("ADD_MUSIC", False) and os.path.exists(mixed_audio_file):
@@ -566,7 +608,20 @@ class Pipeline:
                 self.update_status(9, "☑️", 1.0)
             elif "Add Background Music" in steps_to_run:
                 if self.config.get("ADD_MUSIC", False):
-                    self.update_status(9, "⏳", 0.2); final_audio = mix_audio_with_music(audio_file, "assets/background_music.mp3", mixed_audio_file); self.update_status(9, "✅", 1.0)
+                    music_path = self.config.get("BACKGROUND_MUSIC_PATH", "assets/background_music.mp3")
+                    if not os.path.isfile(music_path):
+                        self.optional_failures.append("Background music was requested, but the music asset is missing")
+                        logging.warning(self.optional_failures[-1])
+                        self.update_status(9, "⏭️ Music asset missing", 1.0)
+                    else:
+                        self.update_status(9, "⏳", 0.2)
+                        try:
+                            final_audio = mix_audio_with_music(audio_file, music_path, mixed_audio_file)
+                            self.update_status(9, "✅", 1.0)
+                        except Exception as exc:
+                            self.optional_failures.append(f"Background music could not be mixed: {exc}")
+                            logging.warning(self.optional_failures[-1])
+                            self.update_status(9, "⏭️ Music mix failed", 1.0)
                 else: 
                     self.update_status(9, "⏭️", 1.0)
             elif self.config.get("ADD_MUSIC", False) and os.path.exists(mixed_audio_file):
@@ -685,11 +740,10 @@ class Pipeline:
                     final_video_map_tag = last_video_output
 
                 if need_captions:
-                    if os.path.exists(captions_file):
+                    if _has_caption_dialogue(captions_file):
                         logging.info(f"Applying captions from: {captions_file}")
                     else:
-                        logging.warning(f"⚠️ Captions are enabled but .ass file not found at '{captions_file}'. Subtitles will be skipped.")
-                        need_captions = False  # Disable so we skip the second pass
+                        raise RuntimeError("Captions are enabled, but no usable subtitle file exists")
 
                 if not skip_ffmpeg_first_pass:
                     inputs.extend(["-i", final_audio])
@@ -711,7 +765,7 @@ class Pipeline:
                     ])
                     
                     logging.debug(f"Executing FFMPEG command: {' '.join(ffmpeg_cmd)}")
-                    subprocess.run(ffmpeg_cmd, check=True, capture_output=True, text=True, encoding='utf-8')
+                    self._run_process(ffmpeg_cmd, check=True, capture_output=True, text=True, encoding='utf-8')
 
                 # Second pass: burn in subtitles using -vf subtitles= (more reliable than ass in filter_complex)
                 if need_captions and os.path.exists(raw_video_file):
@@ -727,7 +781,7 @@ class Pipeline:
                         final_video_file
                     ]
                     logging.debug(f"Caption burn command: {' '.join(caption_cmd)}")
-                    subprocess.run(caption_cmd, check=True, capture_output=True, text=True, encoding='utf-8')
+                    self._run_process(caption_cmd, check=True, capture_output=True, text=True, encoding='utf-8')
                     os.remove(raw_video_file)  # Clean up intermediate file
                     logging.info("✅ Subtitles burned in successfully.")
 
@@ -749,7 +803,7 @@ class Pipeline:
                         elif watermark_pos == "Top-Right": pos_str = "main_w-overlay_w-20:20"
                         elif watermark_pos == "Bottom-Left": pos_str = "20:main_h-overlay_h-20"
                         
-                        subprocess.run([
+                        self._run_process([
                             "ffmpeg", "-y", "-i", current_vid, "-i", logo_path,
                             "-filter_complex", f"[1:v]scale=iw*0.15:-1[wm];[0:v][wm]overlay={pos_str}",
                             "-c:a", "copy", branded_vid
@@ -766,7 +820,7 @@ class Pipeline:
                             if outro_path and os.path.exists(outro_path):
                                 f.write(f"file '{os.path.abspath(outro_path)}'\n")
                         
-                        subprocess.run([
+                        self._run_process([
                             "ffmpeg", "-y", "-f", "concat", "-safe", "0", "-i", concat_txt,
                             "-c", "copy", branded_vid
                         ], check=True, capture_output=True)
@@ -851,7 +905,7 @@ class Pipeline:
                             # FIX for "width not divisible by 2"
                             pan_scan_filter = f"scale=720:1280:force_original_aspect_ratio=increase,crop=720:1280"
                             ffmpeg_cmd = ["ffmpeg", "-y", "-i", final_video_file, "-ss", start_time, "-t", "60", "-vf", pan_scan_filter, "-c:a", "copy", output_snippet_path]
-                        subprocess.run(ffmpeg_cmd, check=True, capture_output=True)
+                        self._run_process(ffmpeg_cmd, check=True, capture_output=True)
                     self.update_status(13, "✅", 1.0)
                 else: 
                     logging.info("Snippet generation is disabled. Skipping."); self.update_status(13, "⏭️", 1.0)
