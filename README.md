@@ -162,3 +162,32 @@ Your support helps me keep updating the tool, adding new AI features, and keepin
 
 ## 📄 License
 This project is licensed under the MIT License.
+
+## Medienwerk: Weiterentwicklung und Updates
+
+Zum lokalen Starten und Ausprobieren siehe [LOCAL_TESTING.md](LOCAL_TESTING.md).
+Für diesen lokalen Fork sind Python 3.11 und die festgehaltenen Abhängigkeiten
+in `requirements-local.lock` maßgeblich. Testabhängigkeiten stehen separat in
+`requirements-test.txt`; nach der Installation lassen sich die isolierten
+Backend-Prüfungen mit `.venv/bin/python -m pytest -q` starten. Die reproduzierbare
+Installation, Frontend-Build-Befehle und Grenzen der tatsächlichen Prüfungen
+stehen in [LOCAL_TESTING.md](LOCAL_TESTING.md) und
+[docs/STABILIZATION_RESULT.md](docs/STABILIZATION_RESULT.md).
+
+Neue Backend-Module sollen die gemeinsamen Projekt-, Medien- und Jobverträge
+verwenden; siehe [docs/MODULE_DEVELOPMENT.md](docs/MODULE_DEVELOPMENT.md). Die
+ursprüngliche Funktionsbeschreibung oben ist die historische Projektbeschreibung
+und kein Nachweis, dass jeder Anbieter-, Social- oder Timeline-Ablauf lokal
+integriert und geprüft wurde.
+
+Die ausführliche Bestandsaufnahme zu Aufbau, Produktionsabläufen und offenen
+Integrationspunkten steht in [docs/PLATFORM_ANALYSIS.md](docs/PLATFORM_ANALYSIS.md).
+
+Der vorgeschlagene Ablauf zur Stabilisierung der vorhandenen Plattform steht in
+[docs/STABILIZATION_PLAN.md](docs/STABILIZATION_PLAN.md).
+
+Aufgabenteilung mit `gpt-6-luna/high`, geprüfte Skills und die abschließende
+Prüfung stehen in [docs/AGENT_WORKFLOW.md](docs/AGENT_WORKFLOW.md).
+
+Die Anleitung für eigene Anpassungen und Updates aus dem Originalprojekt steht
+in [UPSTREAM.md](UPSTREAM.md).

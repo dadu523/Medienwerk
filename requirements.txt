@@ -17,3 +17,6 @@ requests
 opencv-python
 numpy
 playwright
+sqlalchemy
+google-auth-oauthlib
+google-api-python-client

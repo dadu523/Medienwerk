@@ -27,6 +27,15 @@ client_secrets.json
 token.pickle
 *.env
 .env
+campaigns.json
+
+# Local backups, databases, and browser profiles
+.local-backups/
+*.db
+*.sqlite
+*.sqlite3
+browser_profile/
+browser_profiles/
 
 # ====================
 # Generated Content Folders

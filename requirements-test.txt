@@ -1,0 +1,8 @@
+# Local verification tools; production dependencies are in requirements-local.lock.
+pytest==9.1.1
+iniconfig==2.3.1
+pluggy==1.6.0
+pygments==2.21.0
+httpx2==2.13.1
+httpcore2==2.13.1
+truststore==0.10.4
